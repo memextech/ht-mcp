@@ -1,11 +1,12 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use rmcp::{ServerHandler, model::*};
 use crate::ht_integration::SessionManager;
 use crate::error::{HtMcpError, Result};
 
+#[derive(Clone)]
 pub struct HtMcpServer {
     session_manager: Arc<Mutex<SessionManager>>,
-    server_info: ServerInfo,
 }
 
 #[derive(Debug, Clone)]
@@ -18,15 +19,24 @@ impl HtMcpServer {
     pub fn new() -> Self {
         Self {
             session_manager: Arc::new(Mutex::new(SessionManager::new())),
-            server_info: ServerInfo {
+        }
+    }
+
+    pub fn server_info(&self) -> InitializeResult {
+        InitializeResult {
+            protocol_version: ProtocolVersion::default(),
+            capabilities: ServerCapabilities {
+                tools: Some(ToolsCapability {
+                    list_changed: Some(false),
+                }),
+                ..Default::default()
+            },
+            instructions: None,
+            server_info: Implementation {
                 name: "ht-mcp-server".to_string(),
                 version: env!("CARGO_PKG_VERSION").to_string(),
             },
         }
-    }
-
-    pub fn server_info(&self) -> &ServerInfo {
-        &self.server_info
     }
 
     pub async fn handle_tool_call(&self, tool_name: &str, arguments: serde_json::Value) -> Result<serde_json::Value> {
@@ -63,5 +73,11 @@ impl HtMcpServer {
             }
             _ => Err(HtMcpError::InvalidRequest(format!("Unknown tool: {}", tool_name))),
         }
+    }
+}
+
+impl ServerHandler for HtMcpServer {
+    fn get_info(&self) -> InitializeResult {
+        self.server_info()
     }
 }
