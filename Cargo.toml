@@ -8,8 +8,8 @@ description = "Pure Rust MCP server for headless terminal interactions"
 repository = "https://github.com/your-org/ht-mcp-rust"
 
 [dependencies]
-# MCP SDK - using the published rmcp crate with edition 2024
-rmcp = { version = "0.1", features = ["server"] }
+# MCP SDK - using the official rust-sdk
+rmcp = { git = "https://github.com/modelcontextprotocol/rust-sdk", features = ["server", "transport-io", "macros"] }
 
 # Async runtime
 tokio = { version = "1.0", features = ["full"] }
@@ -23,10 +23,18 @@ uuid = { version = "1.0", features = ["v4", "serde"] }
 anyhow = "1.0"
 thiserror = "1.0"
 tracing = "0.1"
-tracing-subscriber = "0.3"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+schemars = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
 
 # CLI
 clap = { version = "4.0", features = ["derive"] }
+
+# Web server
+axum = { version = "0.7", features = ["ws"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+hyper = "1.0"
 
 # Local HT library
 ht-core = { path = "./ht-core" }
@@ -34,3 +42,7 @@ ht-core = { path = "./ht-core" }
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile = "3.0"
+
+[[bin]]
+name = "test_ht_lib"
+path = "test_ht_lib.rs"

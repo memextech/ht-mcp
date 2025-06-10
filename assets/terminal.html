@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HT Terminal Preview</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .terminal {
+            background-color: #000;
+            border: 2px solid #333;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            min-height: 400px;
+            line-height: 1.4;
+        }
+        
+        .controls {
+            margin-bottom: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        button {
+            background-color: #333;
+            color: #f0f0f0;
+            border: 1px solid #555;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #444;
+        }
+        
+        .status {
+            font-size: 12px;
+            color: #888;
+            margin-left: auto;
+        }
+        
+        .info {
+            background-color: #2a2a2a;
+            padding: 10px;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .error {
+            background-color: #4a2020;
+            color: #ff8080;
+            padding: 10px;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .loading {
+            color: #888;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖥️ HT Terminal Preview</h1>
+            <div class="info">
+                <div><strong>Session ID:</strong> <span id="sessionId">Loading...</span></div>
+                <div><strong>Status:</strong> <span id="sessionStatus">Loading...</span></div>
+                <div><strong>Command:</strong> <span id="sessionCommand">Loading...</span></div>
+                <div><strong>Created:</strong> <span id="sessionCreated">Loading...</span></div>
+            </div>
+            <div class="error" id="errorMessage"></div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="refreshSnapshot()">🔄 Refresh</button>
+            <button onclick="toggleAutoRefresh()">
+                <span id="autoRefreshText">▶️ Start Auto-refresh</span>
+            </button>
+            <span class="status" id="lastUpdated">Last updated: Never</span>
+        </div>
+        
+        <div class="terminal" id="terminal">
+            <div class="loading">Loading terminal snapshot...</div>
+        </div>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+        let isAutoRefreshing = false;
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSessionInfo();
+            refreshSnapshot();
+        });
+
+        async function loadSessionInfo() {
+            try {
+                const response = await fetch('/api/session');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const session = data.session;
+                    document.getElementById('sessionId').textContent = session.id;
+                    document.getElementById('sessionStatus').textContent = session.is_alive ? '🟢 Alive' : '🔴 Dead';
+                    document.getElementById('sessionCommand').textContent = session.command.join(' ');
+                    document.getElementById('sessionCreated').textContent = new Date(session.created_at).toLocaleString();
+                } else {
+                    showError('Failed to load session info: ' + data.error);
+                }
+            } catch (error) {
+                showError('Error loading session info: ' + error.message);
+            }
+        }
+
+        async function refreshSnapshot() {
+            try {
+                hideError();
+                const terminal = document.getElementById('terminal');
+                
+                const response = await fetch('/api/snapshot');
+                const data = await response.json();
+                
+                if (data.success) {
+                    terminal.textContent = data.snapshot || 'No terminal output';
+                    document.getElementById('lastUpdated').textContent = 
+                        'Last updated: ' + new Date().toLocaleTimeString();
+                } else {
+                    showError('Failed to get snapshot: ' + data.error);
+                    terminal.textContent = 'Error loading terminal snapshot';
+                }
+            } catch (error) {
+                showError('Error refreshing snapshot: ' + error.message);
+                document.getElementById('terminal').textContent = 'Error loading terminal snapshot';
+            }
+        }
+
+        function toggleAutoRefresh() {
+            const button = document.getElementById('autoRefreshText');
+            
+            if (isAutoRefreshing) {
+                // Stop auto-refresh
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                isAutoRefreshing = false;
+                button.textContent = '▶️ Start Auto-refresh';
+            } else {
+                // Start auto-refresh (every 2 seconds)
+                autoRefreshInterval = setInterval(refreshSnapshot, 2000);
+                isAutoRefreshing = true;
+                button.textContent = '⏸️ Stop Auto-refresh';
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.style.display = 'none';
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            // Ctrl+R or F5 to refresh
+            if ((event.ctrlKey && event.key === 'r') || event.key === 'F5') {
+                event.preventDefault();
+                refreshSnapshot();
+            }
+            
+            // Space to toggle auto-refresh
+            if (event.key === ' ' && event.target === document.body) {
+                event.preventDefault();
+                toggleAutoRefresh();
+            }
+        });
+
+        // Auto-refresh every 5 seconds by default
+        setTimeout(() => {
+            if (!isAutoRefreshing) {
+                toggleAutoRefresh();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
