@@ -27,9 +27,10 @@ struct Cli {
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
     
-    // Initialize logging
+    // Initialize logging to stderr (stdout is used for MCP protocol)
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(if cli.debug { tracing::Level::DEBUG } else { tracing::Level::INFO })
+        .with_writer(std::io::stderr)
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 

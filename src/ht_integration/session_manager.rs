@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use uuid::Uuid;
+use ht_core::{HtLibrary, SessionConfig};
 use crate::mcp::types::*;
 use crate::error::{HtMcpError, Result};
+use crate::ht_integration::command_bridge::CommandBridge;
 
 #[derive(Debug, Clone)]
 pub struct SessionInfo {
@@ -14,23 +16,37 @@ pub struct SessionInfo {
 }
 
 pub struct SessionManager {
-    // For now, we'll use a mock implementation until we integrate the HT library
+    ht_library: HtLibrary,
     sessions: HashMap<String, SessionInfo>,
+    command_bridge: CommandBridge,
 }
 
 impl SessionManager {
     pub fn new() -> Self {
         Self {
+            ht_library: HtLibrary::new(),
             sessions: HashMap::new(),
+            command_bridge: CommandBridge::new(),
         }
     }
 
     pub async fn create_session(&mut self, args: CreateSessionArgs) -> Result<serde_json::Value> {
         let session_id = Uuid::new_v4().to_string();
-        let internal_id = Uuid::new_v4();
         let command = args.command.unwrap_or_else(|| vec!["bash".to_string()]);
+        let enable_web_server = args.enable_web_server.unwrap_or(false);
         
-        let web_server_url = if args.enable_web_server.unwrap_or(false) {
+        // Create HT session configuration
+        let ht_config = SessionConfig {
+            command: command.clone(),
+            size: (120, 40), // Default terminal size
+            enable_web_server,
+        };
+
+        // Create the actual HT session
+        let internal_id = self.ht_library.create_session(ht_config).await
+            .map_err(|e| HtMcpError::HtLibrary(format!("Failed to create HT session: {}", e)))?;
+
+        let web_server_url = if enable_web_server {
             Some(format!("http://127.0.0.1:{}", find_available_port().await?))
         } else {
             None
@@ -50,7 +66,7 @@ impl SessionManager {
         let result = CreateSessionResult {
             session_id,
             message: "HT session created successfully".to_string(),
-            web_server_enabled: args.enable_web_server.unwrap_or(false),
+            web_server_enabled: enable_web_server,
             web_server_url,
         };
 
@@ -58,11 +74,17 @@ impl SessionManager {
     }
 
     pub async fn send_keys(&mut self, args: SendKeysArgs) -> Result<serde_json::Value> {
-        let _session = self.sessions.get(&args.session_id)
+        let session = self.sessions.get(&args.session_id)
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
-        // TODO: Implement actual key sending to HT library
-        tracing::info!("Sending keys {:?} to session {}", args.keys, args.session_id);
+        // Translate keys using command bridge
+        let input_seqs = self.command_bridge.translate_keys(&args.keys)?;
+        
+        // Send keys to HT library
+        self.ht_library.send_input(session.internal_id, input_seqs).await
+            .map_err(|e| HtMcpError::HtLibrary(format!("Failed to send keys: {}", e)))?;
+
+        tracing::info!("Sent keys {:?} to session {}", args.keys, args.session_id);
 
         Ok(serde_json::json!({
             "success": true,
@@ -72,15 +94,16 @@ impl SessionManager {
     }
 
     pub async fn take_snapshot(&self, args: TakeSnapshotArgs) -> Result<serde_json::Value> {
-        let _session = self.sessions.get(&args.session_id)
+        let session = self.sessions.get(&args.session_id)
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
-        // TODO: Implement actual snapshot taking from HT library
-        let mock_snapshot = format!("Mock terminal snapshot for session {}\n$ echo hello\nhello\n$ ", args.session_id);
+        // Take snapshot using HT library
+        let snapshot = self.ht_library.take_snapshot(session.internal_id).await
+            .map_err(|e| HtMcpError::HtLibrary(format!("Failed to take snapshot: {}", e)))?;
 
         Ok(serde_json::json!({
             "sessionId": args.session_id,
-            "snapshot": mock_snapshot
+            "snapshot": snapshot
         }))
     }
 
@@ -113,10 +136,14 @@ impl SessionManager {
     }
 
     pub async fn list_sessions(&self) -> Result<serde_json::Value> {
+        // Get active sessions from HT library
+        let active_ht_sessions = self.ht_library.list_sessions();
+        
         let sessions: Vec<serde_json::Value> = self.sessions.values()
+            .filter(|session| active_ht_sessions.contains(&session.internal_id))
             .map(|session| serde_json::json!({
                 "id": session.id,
-                "isAlive": session.is_alive,
+                "isAlive": active_ht_sessions.contains(&session.internal_id),
                 "createdAt": session.created_at.duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default().as_secs(),
                 "command": session.command,
@@ -131,11 +158,14 @@ impl SessionManager {
     }
 
     pub async fn close_session(&mut self, args: CloseSessionArgs) -> Result<serde_json::Value> {
-        let _session = self.sessions.remove(&args.session_id)
+        let session = self.sessions.remove(&args.session_id)
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
-        // TODO: Implement actual session closing in HT library
-        tracing::info!("Closing session {}", args.session_id);
+        // Close session in HT library
+        self.ht_library.close_session(session.internal_id).await
+            .map_err(|e| HtMcpError::HtLibrary(format!("Failed to close session: {}", e)))?;
+
+        tracing::info!("Closed session {}", args.session_id);
 
         Ok(serde_json::json!({
             "success": true,
