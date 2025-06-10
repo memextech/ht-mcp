@@ -1,0 +1,36 @@
+[package]
+name = "ht-mcp-rust"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "Apache-2.0"
+description = "Pure Rust MCP server for headless terminal interactions"
+repository = "https://github.com/your-org/ht-mcp-rust"
+
+[dependencies]
+# MCP SDK - using the published rmcp crate with edition 2024
+rmcp = { version = "0.1", features = ["server"] }
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Utilities
+uuid = { version = "1.0", features = ["v4", "serde"] }
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# CLI
+clap = { version = "4.0", features = ["derive"] }
+
+# Local HT library (will be added after forking)
+# ht-core = { path = "./ht-core" }
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.0"
