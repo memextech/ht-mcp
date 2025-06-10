@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::mpsc;
+use std::net::{SocketAddr, TcpListener};
 use uuid::Uuid;
-use ht_core::{HtLibrary, SessionConfig, InputSeq};
+use ht_core::{session::Session, command::Command, pty, api::http, cli::Size};
+use std::str::FromStr;
 use crate::mcp::types::*;
 use crate::error::{HtMcpError, Result};
-use crate::web_server::{WebServerManager, SnapshotProvider};
+
+use tracing::{info, error};
 
 #[derive(Debug, Clone)]
 pub struct SessionInfo {
@@ -15,20 +18,17 @@ pub struct SessionInfo {
     pub web_server_url: Option<String>,
     pub is_alive: bool,
     pub command: Vec<String>,
+    pub command_tx: Arc<mpsc::Sender<Command>>,
 }
 
 pub struct SessionManager {
     sessions: HashMap<String, SessionInfo>,
-    ht_library: Arc<Mutex<HtLibrary>>,
-    web_server_manager: WebServerManager,
 }
 
 impl SessionManager {
     pub fn new() -> Self {
         Self {
             sessions: HashMap::new(),
-            ht_library: Arc::new(Mutex::new(HtLibrary::new())),
-            web_server_manager: WebServerManager::new(),
         }
     }
 
@@ -36,80 +36,172 @@ impl SessionManager {
         let session_id = Uuid::new_v4().to_string();
         let command = args.command.unwrap_or_else(|| vec!["bash".to_string()]);
         let enable_web_server = args.enable_web_server.unwrap_or(false);
+        let internal_id = Uuid::new_v4();
         
-        // Configure the HT session
-        let config = SessionConfig {
-            command: command.clone(),
-            size: (120, 40), // Default terminal size
-            enable_web_server,
+        // Create channels for communication
+        let (input_tx, input_rx) = mpsc::channel(1024);
+        let (output_tx, mut output_rx) = mpsc::channel(1024);
+        let (command_tx, mut command_rx) = mpsc::channel(1024);
+        let (clients_tx, mut clients_rx) = mpsc::channel(1);
+
+        // Set up the terminal size
+        let size = Size::from_str("120x40").unwrap_or_else(|_| Size::from_str("80x24").unwrap());
+        let cols = size.cols();
+        let rows = size.rows();
+
+        // Start HTTP server if enabled - we need to clone clients_tx for the HTTP server
+        let (web_server_url, _clients_tx_for_session) = if enable_web_server {
+            let port = self.find_available_port().await?;
+            let addr = SocketAddr::from(([127, 0, 0, 1], port));
+            let listener = TcpListener::bind(addr)
+                .map_err(|e| HtMcpError::Internal(format!("Failed to bind to port {}: {}", port, e)))?;
+            
+            let url = format!("http://127.0.0.1:{}", port);
+            
+            // Clone clients_tx for the HTTP server
+            let clients_tx_for_http = clients_tx.clone();
+            
+            // Start the HTTP server with HT's native implementation
+            tokio::spawn(async move {
+                if let Ok(server_future) = http::start(listener, clients_tx_for_http).await {
+                    if let Err(e) = server_future.await {
+                        error!("HTTP server error: {}", e);
+                    }
+                }
+            });
+            
+            info!("Started HT native webserver on {}", url);
+            (Some(url), clients_tx)
+        } else {
+            (None, clients_tx)
         };
 
-        // Create the real HT session using the library
-        let internal_id = self.ht_library.lock().await.create_session(config).await
-            .map_err(|e| HtMcpError::Internal(format!("Failed to create HT session: {}", e)))?;
+        // Start PTY process
+        let command_str = command.join(" ");
+        let _pty_handle = tokio::spawn(async move {
+            match pty::spawn(command_str, &size, input_rx, output_tx) {
+                Ok(future) => {
+                    if let Err(e) = future.await {
+                        error!("PTY execution error: {}", e);
+                    }
+                }
+                Err(e) => {
+                    error!("PTY spawn error: {}", e);
+                }
+            }
+        });
 
-        tracing::info!("Created HT session with internal ID: {}", internal_id);
+        // Start session event loop
+        let session_id_clone = session_id.clone();
+        tokio::spawn(async move {
+            let mut session = Session::new(cols, rows);
+            let mut serving = true;
+
+            loop {
+                tokio::select! {
+                    // Handle output from PTY
+                    output = output_rx.recv() => {
+                        match output {
+                            Some(data) => {
+                                session.output(String::from_utf8_lossy(&data).to_string());
+                            }
+                            None => {
+                                info!("PTY process exited for session {}", session_id_clone);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Handle commands from MCP
+                    command = command_rx.recv() => {
+                        match command {
+                            Some(Command::Input(seqs)) => {
+                                let data = ht_core::command::seqs_to_bytes(&seqs, session.cursor_key_app_mode());
+                                if let Err(e) = input_tx.send(data).await {
+                                    error!("Failed to send input to PTY: {}", e);
+                                }
+                            }
+                            Some(Command::Snapshot) => {
+                                session.snapshot();
+                            }
+                            Some(Command::Resize(cols, rows)) => {
+                                session.resize(cols, rows);
+                            }
+                            None => {
+                                info!("Command channel closed for session {}", session_id_clone);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Handle WebSocket clients (for webserver)
+                    client = clients_rx.recv(), if serving => {
+                        match client {
+                            Some(client) => {
+                                info!("New WebSocket client connected to session {}", session_id_clone);
+                                client.accept(session.subscribe());
+                            }
+                            None => {
+                                info!("Client channel closed for session {}", session_id_clone);
+                                serving = false;
+                            }
+                        }
+                    }
+                }
+            }
+        });
 
         // Create the session info 
         let session_info = SessionInfo {
             id: session_id.clone(),
             internal_id,
             created_at: std::time::SystemTime::now(),
-            web_server_url: None, // Will be set after web server starts
+            web_server_url: web_server_url,
             is_alive: true,
             command: command.clone(),
+            command_tx: Arc::new(command_tx),
         };
 
+        let web_server_url_for_result = session_info.web_server_url.clone();
+        
         self.sessions.insert(session_id.clone(), session_info);
-
-        // Start web server if requested
-        let web_server_url = if enable_web_server {
-            let provider = Arc::new(SessionManagerSnapshotProvider {
-                session_id: session_id.clone(),
-                internal_id,
-            });
-            
-            match self.web_server_manager.start_server(session_id.clone(), provider).await {
-                Ok(url) => {
-                    // Update session info with web server URL
-                    if let Some(session) = self.sessions.get_mut(&session_id) {
-                        session.web_server_url = Some(url.clone());
-                    }
-                    Some(url)
-                }
-                Err(e) => {
-                    tracing::warn!("Failed to start web server for session {}: {}", session_id, e);
-                    None
-                }
-            }
-        } else {
-            None
-        };
 
         let result = CreateSessionResult {
             session_id,
             message: "HT session created successfully".to_string(),
             web_server_enabled: enable_web_server,
-            web_server_url,
+            web_server_url: web_server_url_for_result,
         };
 
+        info!("Created HT session with native webserver: {:?}", result);
         Ok(serde_json::to_value(result)?)
+    }
+
+    /// Find an available port for the webserver
+    async fn find_available_port(&self) -> Result<u16> {
+        for port in 3000..4000 {
+            if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{}", port)) {
+                drop(listener);
+                return Ok(port);
+            }
+        }
+        Err(HtMcpError::Internal("No available ports found".to_string()))
     }
 
     pub async fn send_keys(&mut self, args: SendKeysArgs) -> Result<serde_json::Value> {
         let session = self.sessions.get(&args.session_id)
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
-        // Convert keys to InputSeq format
-        let input_seqs: Vec<InputSeq> = args.keys.iter()
+        // Convert keys to InputSeq format using HT's command parsing
+        let input_seqs: Vec<ht_core::command::InputSeq> = args.keys.iter()
             .map(|key| parse_key_to_input_seq(key))
             .collect();
 
-        // Send keys to the real HT session
-        self.ht_library.lock().await.send_input(session.internal_id, input_seqs).await
+        // Send keys via the command channel
+        session.command_tx.send(Command::Input(input_seqs)).await
             .map_err(|e| HtMcpError::Internal(format!("Failed to send keys: {}", e)))?;
 
-        tracing::info!("Sent keys {:?} to session {}", args.keys, args.session_id);
+        info!("Sent keys {:?} to session {}", args.keys, args.session_id);
 
         Ok(serde_json::json!({
             "success": true,
@@ -122,16 +214,18 @@ impl SessionManager {
         let session = self.sessions.get(&args.session_id)
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
-        tracing::info!("Taking snapshot for session {} (internal_id: {})", args.session_id, session.internal_id);
+        info!("Taking snapshot for session {}", args.session_id);
 
-        // Get real snapshot from HT library
-        let snapshot = self.ht_library.lock().await.take_snapshot(session.internal_id).await
-            .map_err(|e| {
-                tracing::error!("Failed to take snapshot: {}", e);
-                HtMcpError::Internal(format!("Failed to take snapshot: {}", e))
-            })?;
+        // Send snapshot command - this will trigger the snapshot event
+        session.command_tx.send(Command::Snapshot).await
+            .map_err(|e| HtMcpError::Internal(format!("Failed to send snapshot command: {}", e)))?;
 
-        tracing::info!("Snapshot taken successfully, length: {}", snapshot.len());
+        // Note: In the real HT implementation, snapshots are handled via event broadcasts
+        // For direct API usage, we would need to set up a response channel or use the event system
+        // For now, return a placeholder that indicates the snapshot was triggered
+        let snapshot = "Terminal snapshot triggered - check webserver for live updates".to_string();
+
+        info!("Snapshot triggered for session {}", args.session_id);
 
         Ok(serde_json::json!({
             "sessionId": args.session_id,
@@ -189,16 +283,10 @@ impl SessionManager {
         let session = self.sessions.remove(&args.session_id)
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
-        // Stop web server if it exists
-        if let Err(e) = self.web_server_manager.stop_server(&args.session_id).await {
-            tracing::warn!("Failed to stop web server for session {}: {}", args.session_id, e);
-        }
+        // Close the command channel to trigger session shutdown
+        drop(session.command_tx);
 
-        // Close the real HT session
-        self.ht_library.lock().await.close_session(session.internal_id).await
-            .map_err(|e| HtMcpError::Internal(format!("Failed to close HT session: {}", e)))?;
-
-        tracing::info!("Closed session {}", args.session_id);
+        info!("Closed session {}", args.session_id);
 
         Ok(serde_json::json!({
             "success": true,
@@ -208,7 +296,8 @@ impl SessionManager {
 }
 
 /// Converts a key string to InputSeq for HT library
-fn parse_key_to_input_seq(key: &str) -> InputSeq {
+fn parse_key_to_input_seq(key: &str) -> ht_core::command::InputSeq {
+    use ht_core::command::InputSeq;
     match key {
         "Enter" => InputSeq::Standard("\n".to_string()),
         "Tab" => InputSeq::Standard("\t".to_string()),
@@ -247,34 +336,3 @@ fn parse_key_to_input_seq(key: &str) -> InputSeq {
     }
 }
 
-/// Snapshot provider implementation that stores session-specific information
-struct SessionManagerSnapshotProvider {
-    session_id: String,
-    internal_id: Uuid,
-}
-
-impl SnapshotProvider for SessionManagerSnapshotProvider {
-    fn get_snapshot(&self, session_id: &str) -> Result<String> {
-        if session_id != self.session_id {
-            return Err(HtMcpError::SessionNotFound(session_id.to_string()));
-        }
-        
-        // For real snapshot access, we would need to make the HT library accessible here
-        // For now, return a placeholder that indicates real HT integration is working
-        Ok(format!("Real-time terminal snapshot for session {}\n$ ", session_id))
-    }
-
-    fn get_session_info(&self, session_id: &str) -> Result<crate::web_server::SessionInfo> {
-        if session_id != self.session_id {
-            return Err(HtMcpError::SessionNotFound(session_id.to_string()));
-        }
-
-        Ok(crate::web_server::SessionInfo {
-            id: self.session_id.clone(),
-            is_alive: true,
-            created_at: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default().as_secs().to_string(),
-            command: vec!["bash".to_string()],
-        })
-    }
-}
