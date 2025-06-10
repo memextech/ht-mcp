@@ -1,10 +1,10 @@
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use rmcp::{
     Error as McpError, RoleServer, ServerHandler, model::*, schemars,
     service::RequestContext, tool,
 };
 use crate::ht_integration::SessionManager;
+use tokio::sync::Mutex;
 use crate::mcp::types::*;
 
 #[derive(Clone)]
@@ -147,7 +147,6 @@ impl HtMcpServer {
     #[tool(description = "List all active HT sessions.")]
     async fn ht_list_sessions(&self) -> Result<CallToolResult, McpError> {
         let session_manager = self.session_manager.lock().await;
-        
         match session_manager.list_sessions().await {
             Ok(result) => {
                 let sessions_data: serde_json::Value = result;

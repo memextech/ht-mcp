@@ -7,7 +7,7 @@ mod mcp;
 mod ht_integration;
 mod transport;
 mod error;
-mod web_server;
+
 
 use crate::mcp::server::HtMcpServer;
 
