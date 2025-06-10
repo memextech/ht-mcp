@@ -1,14 +1,22 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, oneshot};
 use std::net::{SocketAddr, TcpListener};
 use uuid::Uuid;
-use ht_core::{session::Session, command::Command, pty, api::http, cli::Size};
+use ht_core::{session::Session, pty, api::http, cli::Size};
 use std::str::FromStr;
 use crate::mcp::types::*;
 use crate::error::{HtMcpError, Result};
 
 use tracing::{info, error};
+
+// Enhanced command type that supports responses
+#[derive(Debug)]
+pub enum SessionCommand {
+    Input(Vec<ht_core::command::InputSeq>),
+    Snapshot(oneshot::Sender<String>),
+    Resize(usize, usize),
+}
 
 #[derive(Debug, Clone)]
 pub struct SessionInfo {
@@ -18,7 +26,7 @@ pub struct SessionInfo {
     pub web_server_url: Option<String>,
     pub is_alive: bool,
     pub command: Vec<String>,
-    pub command_tx: Arc<mpsc::Sender<Command>>,
+    pub command_tx: Arc<mpsc::Sender<SessionCommand>>,
 }
 
 pub struct SessionManager {
@@ -41,7 +49,7 @@ impl SessionManager {
         // Create channels for communication
         let (input_tx, input_rx) = mpsc::channel(1024);
         let (output_tx, mut output_rx) = mpsc::channel(1024);
-        let (command_tx, mut command_rx) = mpsc::channel(1024);
+        let (command_tx, mut command_rx) = mpsc::channel::<SessionCommand>(1024);
         let (clients_tx, mut clients_rx) = mpsc::channel(1);
 
         // Set up the terminal size
@@ -115,16 +123,18 @@ impl SessionManager {
                     // Handle commands from MCP
                     command = command_rx.recv() => {
                         match command {
-                            Some(Command::Input(seqs)) => {
+                            Some(SessionCommand::Input(seqs)) => {
                                 let data = ht_core::command::seqs_to_bytes(&seqs, session.cursor_key_app_mode());
                                 if let Err(e) = input_tx.send(data).await {
                                     error!("Failed to send input to PTY: {}", e);
                                 }
                             }
-                            Some(Command::Snapshot) => {
-                                session.snapshot();
+                            Some(SessionCommand::Snapshot(response_tx)) => {
+                                // Get the current terminal text and send it back
+                                let text = session.get_text();
+                                let _ = response_tx.send(text);
                             }
-                            Some(Command::Resize(cols, rows)) => {
+                            Some(SessionCommand::Resize(cols, rows)) => {
                                 session.resize(cols, rows);
                             }
                             None => {
@@ -198,7 +208,7 @@ impl SessionManager {
             .collect();
 
         // Send keys via the command channel
-        session.command_tx.send(Command::Input(input_seqs)).await
+        session.command_tx.send(SessionCommand::Input(input_seqs)).await
             .map_err(|e| HtMcpError::Internal(format!("Failed to send keys: {}", e)))?;
 
         info!("Sent keys {:?} to session {}", args.keys, args.session_id);
@@ -216,16 +226,22 @@ impl SessionManager {
 
         info!("Taking snapshot for session {}", args.session_id);
 
-        // Send snapshot command - this will trigger the snapshot event
-        session.command_tx.send(Command::Snapshot).await
+        // Create a response channel for the snapshot
+        let (response_tx, response_rx) = oneshot::channel();
+
+        // Send snapshot command with response channel
+        session.command_tx.send(SessionCommand::Snapshot(response_tx)).await
             .map_err(|e| HtMcpError::Internal(format!("Failed to send snapshot command: {}", e)))?;
 
-        // Note: In the real HT implementation, snapshots are handled via event broadcasts
-        // For direct API usage, we would need to set up a response channel or use the event system
-        // For now, return a placeholder that indicates the snapshot was triggered
-        let snapshot = "Terminal snapshot triggered - check webserver for live updates".to_string();
+        // Wait for the response with a timeout
+        let snapshot = tokio::time::timeout(
+            tokio::time::Duration::from_secs(5),
+            response_rx
+        ).await
+            .map_err(|_| HtMcpError::Internal("Snapshot request timed out".to_string()))?
+            .map_err(|e| HtMcpError::Internal(format!("Failed to receive snapshot: {}", e)))?;
 
-        info!("Snapshot triggered for session {}", args.session_id);
+        info!("Received snapshot for session {}: {} chars", args.session_id, snapshot.len());
 
         Ok(serde_json::json!({
             "sessionId": args.session_id,
