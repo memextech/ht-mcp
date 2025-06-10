@@ -1,14 +1,15 @@
 use clap::Parser;
 use tracing::info;
-use rmcp::ServiceExt;
-use tokio::io::{stdin, stdout};
+use rmcp::{ServiceExt, transport::stdio};
+use anyhow::Result;
 
 mod mcp;
 mod ht_integration;
 mod transport;
 mod error;
+mod web_server;
 
-use mcp::server::HtMcpServer;
+use crate::mcp::server::HtMcpServer;
 
 #[derive(Parser)]
 #[command(name = "ht-mcp-rust")]
@@ -24,39 +25,26 @@ struct Cli {
 }
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> Result<()> {
     let cli = Cli::parse();
     
-    // Initialize logging to stderr (stdout is used for MCP protocol)
-    let subscriber = tracing_subscriber::fmt()
-        .with_max_level(if cli.debug { tracing::Level::DEBUG } else { tracing::Level::INFO })
+    // Initialize logging to stderr to avoid interfering with MCP protocol on stdout
+    tracing_subscriber::fmt()
         .with_writer(std::io::stderr)
-        .finish();
-    tracing::subscriber::set_global_default(subscriber)?;
+        .with_max_level(if cli.debug { tracing::Level::DEBUG } else { tracing::Level::INFO })
+        .with_ansi(false)
+        .init();
 
     info!("Starting HT MCP Server v{}", env!("CARGO_PKG_VERSION"));
 
-    // Create transport (stdio)
-    let transport = (stdin(), stdout());
-    
-    // Create MCP server
-    let service = HtMcpServer::new();
-    
-    info!("HT MCP Server created successfully");
-    info!("Server info: {:?}", service.server_info());
-
-    // Start the MCP server
-    let server = service.serve(transport).await
-        .map_err(|e| {
-            tracing::error!("Failed to start MCP server: {}", e);
-            e
+    // Create an instance of our HT MCP server
+    let service = HtMcpServer::new(&cli.name)
+        .serve(stdio())
+        .await
+        .inspect_err(|e| {
+            tracing::error!("serving error: {:?}", e);
         })?;
 
-    info!("HT MCP Server started successfully");
-
-    // Wait for server to finish
-    let quit_reason = server.waiting().await?;
-    info!("Server shutdown: {:?}", quit_reason);
-
+    service.waiting().await?;
     Ok(())
 }
