@@ -1,8 +1,9 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use rmcp::{ServerHandler, model::*};
+use rmcp::{ServerHandler, model::*, service::RequestContext, Error as McpError, RoleServer};
 use crate::ht_integration::SessionManager;
 use crate::error::{HtMcpError, Result};
+use crate::mcp::tools::get_tool_definitions;
 
 #[derive(Clone)]
 pub struct HtMcpServer {
@@ -79,5 +80,49 @@ impl HtMcpServer {
 impl ServerHandler for HtMcpServer {
     fn get_info(&self) -> InitializeResult {
         self.server_info()
+    }
+
+    async fn list_tools(
+        &self,
+        _request: PaginatedRequestParam,
+        _context: RequestContext<RoleServer>,
+    ) -> std::result::Result<ListToolsResult, McpError> {
+        let tools = get_tool_definitions()
+            .into_iter()
+            .map(|tool_def| {
+                let schema_map = tool_def["inputSchema"].as_object().unwrap().clone();
+                Tool {
+                    name: tool_def["name"].as_str().unwrap().to_string().into(),
+                    description: tool_def["description"].as_str().unwrap().to_string().into(),
+                    input_schema: Arc::new(schema_map),
+                }
+            })
+            .collect();
+
+        Ok(ListToolsResult { 
+            tools,
+            next_cursor: None,
+        })
+    }
+
+    async fn call_tool(
+        &self,
+        request: CallToolRequestParam,
+        _context: RequestContext<RoleServer>,
+    ) -> std::result::Result<CallToolResult, McpError> {
+        let arguments = match request.arguments {
+            Some(args) => serde_json::Value::Object(args),
+            None => serde_json::json!({}),
+        };
+        
+        let result = self.handle_tool_call(&request.name, arguments).await
+            .map_err(|e| McpError::internal_error(format!("Tool call failed: {}", e), None))?;
+
+        Ok(CallToolResult {
+            content: vec![
+                Content::text(serde_json::to_string_pretty(&result).unwrap_or_else(|_| result.to_string()))
+            ],
+            is_error: Some(false),
+        })
     }
 }
