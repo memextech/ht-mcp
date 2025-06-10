@@ -28,8 +28,8 @@ tracing-subscriber = "0.3"
 # CLI
 clap = { version = "4.0", features = ["derive"] }
 
-# Local HT library (will be added after forking)
-# ht-core = { path = "./ht-core" }
+# Local HT library as git submodule with library interface
+ht-core = { path = "./ht-core" }
 
 [dev-dependencies]
 tokio-test = "0.4"

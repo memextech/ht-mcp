@@ -1,0 +1,3 @@
+[submodule "ht-core"]
+	path = ht-core
+	url = https://github.com/andyk/ht.git
