@@ -1,5 +1,7 @@
 use clap::Parser;
-use tracing::{info, error};
+use tracing::info;
+use rmcp::ServiceExt;
+use tokio::io::{stdin, stdout};
 
 mod mcp;
 mod ht_integration;
@@ -33,16 +35,27 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Starting HT MCP Server v{}", env!("CARGO_PKG_VERSION"));
 
+    // Create transport (stdio)
+    let transport = (stdin(), stdout());
+    
     // Create MCP server
-    let server = HtMcpServer::new();
+    let service = HtMcpServer::new();
     
     info!("HT MCP Server created successfully");
-    info!("Server info: {:?}", server.server_info());
+    info!("Server info: {:?}", service.server_info());
 
-    // For now, just demonstrate that the server can be created
-    // TODO: Implement actual MCP protocol handling
-    
-    info!("Server would start here - MCP protocol integration pending");
+    // Start the MCP server
+    let server = service.serve(transport).await
+        .map_err(|e| {
+            tracing::error!("Failed to start MCP server: {}", e);
+            e
+        })?;
+
+    info!("HT MCP Server started successfully");
+
+    // Wait for server to finish
+    let quit_reason = server.waiting().await?;
+    info!("Server shutdown: {:?}", quit_reason);
 
     Ok(())
 }

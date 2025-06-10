@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use uuid::Uuid;
-use ht_core::{HtLibrary, SessionConfig, InputSeq};
 use crate::mcp::types::*;
 use crate::error::{HtMcpError, Result};
 
@@ -15,32 +14,21 @@ pub struct SessionInfo {
 }
 
 pub struct SessionManager {
-    ht_lib: HtLibrary,
+    // For now, we'll use a mock implementation until we integrate the HT library
     sessions: HashMap<String, SessionInfo>,
 }
 
 impl SessionManager {
     pub fn new() -> Self {
         Self {
-            ht_lib: HtLibrary::new(),
             sessions: HashMap::new(),
         }
     }
 
     pub async fn create_session(&mut self, args: CreateSessionArgs) -> Result<serde_json::Value> {
         let session_id = Uuid::new_v4().to_string();
+        let internal_id = Uuid::new_v4();
         let command = args.command.unwrap_or_else(|| vec!["bash".to_string()]);
-        
-        // Create HT session config
-        let config = SessionConfig {
-            command: command.clone(),
-            size: (120, 40), // Default terminal size
-            enable_web_server: args.enable_web_server.unwrap_or(false),
-        };
-
-        // Create the actual HT session
-        let internal_id = self.ht_lib.create_session(config).await
-            .map_err(|e| HtMcpError::HtLibrary(format!("Failed to create HT session: {}", e)))?;
         
         let web_server_url = if args.enable_web_server.unwrap_or(false) {
             Some(format!("http://127.0.0.1:{}", find_available_port().await?))
@@ -70,37 +58,11 @@ impl SessionManager {
     }
 
     pub async fn send_keys(&mut self, args: SendKeysArgs) -> Result<serde_json::Value> {
-        let session = self.sessions.get(&args.session_id)
+        let _session = self.sessions.get(&args.session_id)
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
-        // Convert keys to InputSeq format
-        let input_seqs: Vec<InputSeq> = args.keys.iter()
-            .map(|key| {
-                // Handle special keys
-                match key.as_str() {
-                    "Enter" => InputSeq::Standard("\r".to_string()),
-                    "Tab" => InputSeq::Standard("\t".to_string()),
-                    "Escape" => InputSeq::Standard("\x1b".to_string()),
-                    "Backspace" => InputSeq::Standard("\x08".to_string()),
-                    "Delete" => InputSeq::Standard("\x7f".to_string()),
-                    "Up" => InputSeq::Cursor("\x1b[A".to_string(), "\x1bOA".to_string()),
-                    "Down" => InputSeq::Cursor("\x1b[B".to_string(), "\x1bOB".to_string()),
-                    "Right" => InputSeq::Cursor("\x1b[C".to_string(), "\x1bOC".to_string()),
-                    "Left" => InputSeq::Cursor("\x1b[D".to_string(), "\x1bOD".to_string()),
-                    _ if key.starts_with("^") => {
-                        // Handle Ctrl sequences like ^C, ^D, etc.
-                        let ctrl_char = key.chars().nth(1).unwrap_or('c');
-                        let ctrl_code = (ctrl_char as u8 - b'a' + 1) as char;
-                        InputSeq::Standard(ctrl_code.to_string())
-                    }
-                    _ => InputSeq::Standard(key.clone()),
-                }
-            })
-            .collect();
-
-        // Send to HT library
-        self.ht_lib.send_input(session.internal_id, input_seqs).await
-            .map_err(|e| HtMcpError::HtLibrary(format!("Failed to send keys: {}", e)))?;
+        // TODO: Implement actual key sending to HT library
+        tracing::info!("Sending keys {:?} to session {}", args.keys, args.session_id);
 
         Ok(serde_json::json!({
             "success": true,
@@ -110,16 +72,15 @@ impl SessionManager {
     }
 
     pub async fn take_snapshot(&self, args: TakeSnapshotArgs) -> Result<serde_json::Value> {
-        let session = self.sessions.get(&args.session_id)
+        let _session = self.sessions.get(&args.session_id)
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
-        // Take snapshot from HT library
-        let snapshot = self.ht_lib.take_snapshot(session.internal_id).await
-            .map_err(|e| HtMcpError::HtLibrary(format!("Failed to take snapshot: {}", e)))?;
+        // TODO: Implement actual snapshot taking from HT library
+        let mock_snapshot = format!("Mock terminal snapshot for session {}\n$ echo hello\nhello\n$ ", args.session_id);
 
         Ok(serde_json::json!({
             "sessionId": args.session_id,
-            "snapshot": snapshot
+            "snapshot": mock_snapshot
         }))
     }
 
@@ -170,12 +131,11 @@ impl SessionManager {
     }
 
     pub async fn close_session(&mut self, args: CloseSessionArgs) -> Result<serde_json::Value> {
-        let session = self.sessions.remove(&args.session_id)
+        let _session = self.sessions.remove(&args.session_id)
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
-        // Close the HT session
-        self.ht_lib.close_session(session.internal_id).await
-            .map_err(|e| HtMcpError::HtLibrary(format!("Failed to close session: {}", e)))?;
+        // TODO: Implement actual session closing in HT library
+        tracing::info!("Closing session {}", args.session_id);
 
         Ok(serde_json::json!({
             "success": true,
