@@ -1,13 +1,12 @@
-use clap::Parser;
-use tracing::info;
-use rmcp::{ServiceExt, transport::stdio};
 use anyhow::Result;
+use clap::Parser;
+use rmcp::{transport::stdio, ServiceExt};
+use tracing::info;
 
-mod mcp;
-mod ht_integration;
-mod transport;
 mod error;
-
+mod ht_integration;
+mod mcp;
+mod transport;
 
 use crate::mcp::server::HtMcpServer;
 
@@ -18,7 +17,7 @@ struct Cli {
     /// Enable debug logging
     #[arg(short, long)]
     debug: bool,
-    
+
     /// Server name for MCP identification
     #[arg(long, default_value = "ht-mcp-server")]
     name: String,
@@ -27,11 +26,15 @@ struct Cli {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    
+
     // Initialize logging to stderr to avoid interfering with MCP protocol on stdout
     tracing_subscriber::fmt()
         .with_writer(std::io::stderr)
-        .with_max_level(if cli.debug { tracing::Level::DEBUG } else { tracing::Level::INFO })
+        .with_max_level(if cli.debug {
+            tracing::Level::DEBUG
+        } else {
+            tracing::Level::INFO
+        })
         .with_ansi(false)
         .init();
 

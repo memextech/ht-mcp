@@ -9,7 +9,7 @@ impl EventHandler {
     pub fn new() -> Self {
         Self
     }
-    
+
     // Placeholder for event handling
     pub async fn handle_event(&self, event: serde_json::Value) -> Result<()> {
         tracing::debug!("Handling event: {:?}", event);

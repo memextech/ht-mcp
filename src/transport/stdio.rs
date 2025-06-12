@@ -9,7 +9,7 @@ impl StdioTransport {
     pub fn new() -> Self {
         Self
     }
-    
+
     // Placeholder for stdio transport
     pub async fn start(&self) -> Result<()> {
         tracing::info!("Starting stdio transport");

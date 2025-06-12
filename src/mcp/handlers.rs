@@ -10,7 +10,7 @@ impl McpHandlers {
     pub fn new() -> Self {
         Self
     }
-    
+
     // Placeholder for MCP protocol handlers
     pub async fn handle_initialize(&self) -> Result<serde_json::Value> {
         Ok(serde_json::json!({

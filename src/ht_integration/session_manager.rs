@@ -1,14 +1,14 @@
+use crate::error::{HtMcpError, Result};
+use crate::mcp::types::*;
+use ht_core::{api::http, cli::Size, pty, session::Session};
 use std::collections::HashMap;
+use std::net::{SocketAddr, TcpListener};
+use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
-use std::net::{SocketAddr, TcpListener};
 use uuid::Uuid;
-use ht_core::{session::Session, pty, api::http, cli::Size};
-use std::str::FromStr;
-use crate::mcp::types::*;
-use crate::error::{HtMcpError, Result};
 
-use tracing::{info, error};
+use tracing::{error, info};
 
 // Enhanced command type that supports responses
 #[derive(Debug)]
@@ -45,7 +45,7 @@ impl SessionManager {
         let command = args.command.unwrap_or_else(|| vec!["bash".to_string()]);
         let enable_web_server = args.enable_web_server.unwrap_or(false);
         let internal_id = Uuid::new_v4();
-        
+
         // Create channels for communication
         let (input_tx, input_rx) = mpsc::channel(1024);
         let (output_tx, mut output_rx) = mpsc::channel(1024);
@@ -61,14 +61,15 @@ impl SessionManager {
         let (web_server_url, _clients_tx_for_session) = if enable_web_server {
             let port = self.find_available_port().await?;
             let addr = SocketAddr::from(([127, 0, 0, 1], port));
-            let listener = TcpListener::bind(addr)
-                .map_err(|e| HtMcpError::Internal(format!("Failed to bind to port {}: {}", port, e)))?;
-            
+            let listener = TcpListener::bind(addr).map_err(|e| {
+                HtMcpError::Internal(format!("Failed to bind to port {}: {}", port, e))
+            })?;
+
             let url = format!("http://127.0.0.1:{}", port);
-            
+
             // Clone clients_tx for the HTTP server
             let clients_tx_for_http = clients_tx.clone();
-            
+
             // Start the HTTP server with HT's native implementation
             tokio::spawn(async move {
                 if let Ok(server_future) = http::start(listener, clients_tx_for_http).await {
@@ -77,7 +78,7 @@ impl SessionManager {
                     }
                 }
             });
-            
+
             info!("Started HT native webserver on {}", url);
             (Some(url), clients_tx)
         } else {
@@ -119,7 +120,7 @@ impl SessionManager {
                             }
                         }
                     }
-                    
+
                     // Handle commands from MCP
                     command = command_rx.recv() => {
                         match command {
@@ -143,7 +144,7 @@ impl SessionManager {
                             }
                         }
                     }
-                    
+
                     // Handle WebSocket clients (for webserver)
                     client = clients_rx.recv(), if serving => {
                         match client {
@@ -161,7 +162,7 @@ impl SessionManager {
             }
         });
 
-        // Create the session info 
+        // Create the session info
         let session_info = SessionInfo {
             id: session_id.clone(),
             internal_id,
@@ -173,7 +174,7 @@ impl SessionManager {
         };
 
         let web_server_url_for_result = session_info.web_server_url.clone();
-        
+
         self.sessions.insert(session_id.clone(), session_info);
 
         let result = CreateSessionResult {
@@ -199,16 +200,23 @@ impl SessionManager {
     }
 
     pub async fn send_keys(&mut self, args: SendKeysArgs) -> Result<serde_json::Value> {
-        let session = self.sessions.get(&args.session_id)
+        let session = self
+            .sessions
+            .get(&args.session_id)
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
         // Convert keys to InputSeq format using HT's command parsing
-        let input_seqs: Vec<ht_core::command::InputSeq> = args.keys.iter()
+        let input_seqs: Vec<ht_core::command::InputSeq> = args
+            .keys
+            .iter()
             .map(|key| parse_key_to_input_seq(key))
             .collect();
 
         // Send keys via the command channel
-        session.command_tx.send(SessionCommand::Input(input_seqs)).await
+        session
+            .command_tx
+            .send(SessionCommand::Input(input_seqs))
+            .await
             .map_err(|e| HtMcpError::Internal(format!("Failed to send keys: {}", e)))?;
 
         info!("Sent keys {:?} to session {}", args.keys, args.session_id);
@@ -221,7 +229,9 @@ impl SessionManager {
     }
 
     pub async fn take_snapshot(&self, args: TakeSnapshotArgs) -> Result<serde_json::Value> {
-        let session = self.sessions.get(&args.session_id)
+        let session = self
+            .sessions
+            .get(&args.session_id)
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
         info!("Taking snapshot for session {}", args.session_id);
@@ -230,18 +240,23 @@ impl SessionManager {
         let (response_tx, response_rx) = oneshot::channel();
 
         // Send snapshot command with response channel
-        session.command_tx.send(SessionCommand::Snapshot(response_tx)).await
+        session
+            .command_tx
+            .send(SessionCommand::Snapshot(response_tx))
+            .await
             .map_err(|e| HtMcpError::Internal(format!("Failed to send snapshot command: {}", e)))?;
 
         // Wait for the response with a timeout
-        let snapshot = tokio::time::timeout(
-            tokio::time::Duration::from_secs(5),
-            response_rx
-        ).await
+        let snapshot = tokio::time::timeout(tokio::time::Duration::from_secs(5), response_rx)
+            .await
             .map_err(|_| HtMcpError::Internal("Snapshot request timed out".to_string()))?
             .map_err(|e| HtMcpError::Internal(format!("Failed to receive snapshot: {}", e)))?;
 
-        info!("Received snapshot for session {}: {} chars", args.session_id, snapshot.len());
+        info!(
+            "Received snapshot for session {}: {} chars",
+            args.session_id,
+            snapshot.len()
+        );
 
         Ok(serde_json::json!({
             "sessionId": args.session_id,
@@ -254,21 +269,25 @@ impl SessionManager {
         self.send_keys(SendKeysArgs {
             session_id: args.session_id.clone(),
             keys: vec![args.command.clone()],
-        }).await?;
+        })
+        .await?;
 
         // Send Enter
         self.send_keys(SendKeysArgs {
             session_id: args.session_id.clone(),
             keys: vec!["Enter".to_string()],
-        }).await?;
+        })
+        .await?;
 
         // Wait for command to execute
         tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
 
         // Take snapshot
-        let snapshot_result = self.take_snapshot(TakeSnapshotArgs {
-            session_id: args.session_id.clone(),
-        }).await?;
+        let snapshot_result = self
+            .take_snapshot(TakeSnapshotArgs {
+                session_id: args.session_id.clone(),
+            })
+            .await?;
 
         Ok(serde_json::json!({
             "command": args.command,
@@ -278,15 +297,19 @@ impl SessionManager {
     }
 
     pub async fn list_sessions(&self) -> Result<serde_json::Value> {
-        let sessions: Vec<serde_json::Value> = self.sessions.values()
-            .map(|session| serde_json::json!({
-                "id": session.id,
-                "isAlive": session.is_alive,
-                "createdAt": session.created_at.duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default().as_secs(),
-                "command": session.command,
-                "webServerUrl": session.web_server_url
-            }))
+        let sessions: Vec<serde_json::Value> = self
+            .sessions
+            .values()
+            .map(|session| {
+                serde_json::json!({
+                    "id": session.id,
+                    "isAlive": session.is_alive,
+                    "createdAt": session.created_at.duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default().as_secs(),
+                    "command": session.command,
+                    "webServerUrl": session.web_server_url
+                })
+            })
             .collect();
 
         Ok(serde_json::json!({
@@ -296,7 +319,9 @@ impl SessionManager {
     }
 
     pub async fn close_session(&mut self, args: CloseSessionArgs) -> Result<serde_json::Value> {
-        let session = self.sessions.remove(&args.session_id)
+        let session = self
+            .sessions
+            .remove(&args.session_id)
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
         // Close the command channel to trigger session shutdown
@@ -351,4 +376,3 @@ fn parse_key_to_input_seq(key: &str) -> ht_core::command::InputSeq {
         _ => InputSeq::Standard(key.to_string()),
     }
 }
-
