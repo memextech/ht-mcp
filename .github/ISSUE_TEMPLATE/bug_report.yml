@@ -1,0 +1,135 @@
+name: 🐛 Bug Report
+description: Report a bug or issue with HT-MCP
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug! Please fill out the information below to help us diagnose and fix the issue.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm the following before submitting a bug report
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I have read the documentation and troubleshooting guide
+          required: true
+        - label: I can reproduce this issue consistently
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug
+      placeholder: Describe what happened and what you expected to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior
+      placeholder: |
+        1. Run command '...'
+        2. Send MCP request '...'
+        3. See error
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: Describe the expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+      placeholder: Describe what actually happened instead
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: HT-MCP Version
+      description: Output of `ht-mcp --version`
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      options:
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+        - Linux (Ubuntu/Debian)
+        - Linux (Red Hat/CentOS/Fedora)
+        - Linux (Arch/Manjaro)
+        - Linux (Other)
+        - Windows 10
+        - Windows 11
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: rust-version
+    attributes:
+      label: Rust Version
+      description: Output of `rustc --version` (if building from source)
+      placeholder: "rustc 1.70.0"
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error Output
+      description: Complete error messages, stack traces, or logs
+      placeholder: Paste the full error output here
+      render: text
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: Relevant configuration files or settings
+      placeholder: |
+        MCP configuration, environment variables, etc.
+      render: json
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem
+      placeholder: |
+        - Does this happen with specific MCP clients?
+        - Are there any workarounds?
+        - When did this problem start occurring?
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you be willing to help fix this issue?
+      options:
+        - label: I would be willing to submit a PR to fix this issue
+        - label: I would like to help test a fix for this issue

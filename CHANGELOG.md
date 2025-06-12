@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- 🏷️ **BREAKING**: Renamed crate from `ht-mcp-rust` to `ht-mcp`
+- 📄 **BREAKING**: Changed license from Apache-2.0 to MIT
+- 🏠 Migrated repository from `atlasfutures/ht-mcp-rust` to `memextech/ht-mcp`
+- 🚀 Enhanced CI/CD pipeline with multi-platform builds
+- 📦 Added comprehensive release automation
+- 🛡️ Added security auditing and license checking
+- 📊 Added code coverage reporting
+- 🔧 Added Dependabot for dependency management
+
+### Added
+- 📝 Comprehensive installation instructions
+- 🔒 MIT LICENSE file
+- 📋 Repository migration checklist
+- 🤖 Enhanced GitHub Actions workflows
+- 🧪 Extended test matrix for multiple platforms
+- 📈 Performance benchmarking infrastructure
+
 ## [0.1.0] - 2025-06-10
 
 ### 🎉 FIRST MILESTONE - Complete Rust Implementation
