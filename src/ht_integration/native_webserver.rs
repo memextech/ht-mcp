@@ -1,16 +1,15 @@
+use anyhow::{anyhow, Result};
+use serde_json::Value;
+use std::collections::HashMap;
 /// Integration with HT's native webserver functionality
 /// This module handles starting HT with its built-in webserver enabled,
 /// which provides real-time terminal updates via WebSocket.
-
 use std::process::Stdio;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::mpsc;
-use tokio::io::{BufReader, AsyncBufReadExt, AsyncWriteExt};
-use serde_json::Value;
-use anyhow::{Result, anyhow};
+use tracing::{debug, error, info, warn};
 use uuid::Uuid;
-use std::collections::HashMap;
-use tracing::{info, warn, error, debug};
 
 /// Represents an HT session running with native webserver support
 #[derive(Debug)]
@@ -22,10 +21,10 @@ pub struct NativeHtSession {
     pub web_server_port: Option<u16>,
     pub is_alive: bool,
     pub created_at: std::time::SystemTime,
-    
+
     // Process handle for the HT binary
     process: Child,
-    
+
     // Communication channels
     stdin_tx: mpsc::Sender<String>,
     stdout_rx: mpsc::Receiver<String>,
@@ -45,13 +44,13 @@ impl NativeHtManager {
 
     /// Create a new HT session with optional webserver
     pub async fn create_session(
-        &mut self, 
-        command: Vec<String>, 
-        enable_web_server: bool
+        &mut self,
+        command: Vec<String>,
+        enable_web_server: bool,
     ) -> Result<String> {
         let session_id = Uuid::new_v4().to_string();
         let internal_id = Uuid::new_v4();
-        
+
         // Find available port for webserver if enabled
         let (web_server_port, web_server_url) = if enable_web_server {
             let port = self.find_available_port().await?;
@@ -63,14 +62,11 @@ impl NativeHtManager {
 
         // Build HT command
         let mut ht_args = vec!["--subscribe".to_string(), "snapshot,output".to_string()];
-        
+
         if let Some(port) = web_server_port {
-            ht_args.extend_from_slice(&[
-                "-l".to_string(),
-                format!("127.0.0.1:{}", port),
-            ]);
+            ht_args.extend_from_slice(&["-l".to_string(), format!("127.0.0.1:{}", port)]);
         }
-        
+
         ht_args.extend(command.clone());
 
         info!("Starting HT with args: {:?}", ht_args);
@@ -85,8 +81,14 @@ impl NativeHtManager {
             .map_err(|e| anyhow!("Failed to start HT process: {}", e))?;
 
         // Set up communication channels
-        let stdin = child.stdin.take().ok_or_else(|| anyhow!("Failed to get stdin"))?;
-        let stdout = child.stdout.take().ok_or_else(|| anyhow!("Failed to get stdout"))?;
+        let stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| anyhow!("Failed to get stdin"))?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| anyhow!("Failed to get stdout"))?;
 
         let (stdin_tx, mut stdin_rx) = mpsc::channel::<String>(1024);
         let (stdout_tx, stdout_rx) = mpsc::channel::<String>(1024);
@@ -118,9 +120,12 @@ impl NativeHtManager {
         });
 
         // Wait a moment for HT to start up
-        tokio::time::sleep(tokio::time::Duration::from_millis(
-            if enable_web_server { 2000 } else { 800 }
-        )).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(if enable_web_server {
+            2000
+        } else {
+            800
+        }))
+        .await;
 
         // Create session info
         let session = NativeHtSession {
@@ -139,9 +144,8 @@ impl NativeHtManager {
         self.sessions.insert(session_id.clone(), session);
 
         info!(
-            "Created HT session {} with webserver: {}", 
-            session_id, 
-            enable_web_server
+            "Created HT session {} with webserver: {}",
+            session_id, enable_web_server
         );
 
         Ok(session_id)
@@ -149,7 +153,9 @@ impl NativeHtManager {
 
     /// Send keys to an HT session
     pub async fn send_keys(&mut self, session_id: &str, keys: Vec<String>) -> Result<()> {
-        let session = self.sessions.get_mut(session_id)
+        let session = self
+            .sessions
+            .get_mut(session_id)
             .ok_or_else(|| anyhow!("Session not found: {}", session_id))?;
 
         if !session.is_alive {
@@ -162,7 +168,10 @@ impl NativeHtManager {
         });
 
         let command_str = format!("{}\n", command.to_string());
-        session.stdin_tx.send(command_str).await
+        session
+            .stdin_tx
+            .send(command_str)
+            .await
             .map_err(|e| anyhow!("Failed to send keys: {}", e))?;
 
         debug!("Sent keys {:?} to session {}", keys, session_id);
@@ -171,7 +180,9 @@ impl NativeHtManager {
 
     /// Take a snapshot of an HT session
     pub async fn take_snapshot(&mut self, session_id: &str) -> Result<String> {
-        let session = self.sessions.get_mut(session_id)
+        let session = self
+            .sessions
+            .get_mut(session_id)
             .ok_or_else(|| anyhow!("Session not found: {}", session_id))?;
 
         if !session.is_alive {
@@ -183,7 +194,10 @@ impl NativeHtManager {
         });
 
         let command_str = format!("{}\n", command.to_string());
-        session.stdin_tx.send(command_str).await
+        session
+            .stdin_tx
+            .send(command_str)
+            .await
             .map_err(|e| anyhow!("Failed to send snapshot command: {}", e))?;
 
         // Wait for snapshot response
@@ -193,18 +207,30 @@ impl NativeHtManager {
         while start_time.elapsed() < timeout {
             if let Ok(line) = tokio::time::timeout(
                 tokio::time::Duration::from_millis(100),
-                session.stdout_rx.recv()
-            ).await {
+                session.stdout_rx.recv(),
+            )
+            .await
+            {
                 if let Some(line) = line {
                     if let Ok(response) = serde_json::from_str::<Value>(&line) {
                         if let Some(event_type) = response.get("type").and_then(|t| t.as_str()) {
                             if event_type == "snapshot" {
                                 if let Some(data) = response.get("data") {
                                     if let Some(text) = data.get("text").and_then(|t| t.as_str()) {
-                                        debug!("Received snapshot for session {}, length: {}", session_id, text.len());
+                                        debug!(
+                                            "Received snapshot for session {}, length: {}",
+                                            session_id,
+                                            text.len()
+                                        );
                                         return Ok(text.to_string());
-                                    } else if let Some(seq) = data.get("seq").and_then(|s| s.as_str()) {
-                                        debug!("Received snapshot seq for session {}, length: {}", session_id, seq.len());
+                                    } else if let Some(seq) =
+                                        data.get("seq").and_then(|s| s.as_str())
+                                    {
+                                        debug!(
+                                            "Received snapshot seq for session {}, length: {}",
+                                            session_id,
+                                            seq.len()
+                                        );
                                         return Ok(seq.to_string());
                                     }
                                 }
@@ -221,14 +247,16 @@ impl NativeHtManager {
     /// Execute a command in an HT session
     pub async fn execute_command(&mut self, session_id: &str, command: &str) -> Result<String> {
         // Send the command
-        self.send_keys(session_id, vec![command.to_string()]).await?;
-        
+        self.send_keys(session_id, vec![command.to_string()])
+            .await?;
+
         // Send Enter
-        self.send_keys(session_id, vec!["Enter".to_string()]).await?;
-        
+        self.send_keys(session_id, vec!["Enter".to_string()])
+            .await?;
+
         // Wait for command to execute
         tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
-        
+
         // Take snapshot to see result
         self.take_snapshot(session_id).await
     }
@@ -248,12 +276,15 @@ impl NativeHtManager {
         if let Some(mut session) = self.sessions.remove(session_id) {
             // Mark as not alive
             session.is_alive = false;
-            
+
             // Kill the process
             if let Err(e) = session.process.kill().await {
-                warn!("Failed to kill HT process for session {}: {}", session_id, e);
+                warn!(
+                    "Failed to kill HT process for session {}: {}",
+                    session_id, e
+                );
             }
-            
+
             info!("Closed session {}", session_id);
             Ok(())
         } else {
@@ -264,14 +295,14 @@ impl NativeHtManager {
     /// Find an available port for the webserver
     async fn find_available_port(&self) -> Result<u16> {
         use tokio::net::TcpListener;
-        
+
         for port in 3000..4000 {
             if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{}", port)).await {
                 drop(listener);
                 return Ok(port);
             }
         }
-        
+
         Err(anyhow!("No available ports found"))
     }
 }
@@ -294,22 +325,34 @@ mod tests {
     #[tokio::test]
     async fn test_native_ht_session() {
         let mut manager = NativeHtManager::new();
-        
+
         // Create session without webserver first (faster)
-        let session_id = manager.create_session(vec!["bash".to_string()], false).await.unwrap();
-        
+        let session_id = manager
+            .create_session(vec!["bash".to_string()], false)
+            .await
+            .unwrap();
+
         // Test basic commands
         let snapshot = manager.take_snapshot(&session_id).await.unwrap();
         assert!(!snapshot.is_empty());
-        
-        manager.send_keys(&session_id, vec!["echo".to_string(), " ".to_string(), "hello".to_string()]).await.unwrap();
-        manager.send_keys(&session_id, vec!["Enter".to_string()]).await.unwrap();
-        
+
+        manager
+            .send_keys(
+                &session_id,
+                vec!["echo".to_string(), " ".to_string(), "hello".to_string()],
+            )
+            .await
+            .unwrap();
+        manager
+            .send_keys(&session_id, vec!["Enter".to_string()])
+            .await
+            .unwrap();
+
         // Wait and take another snapshot
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
         let snapshot2 = manager.take_snapshot(&session_id).await.unwrap();
         assert!(snapshot2.contains("hello"));
-        
+
         // Clean up
         manager.close_session(&session_id).await.unwrap();
     }
