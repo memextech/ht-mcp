@@ -1,11 +1,32 @@
 [package]
-name = "ht-mcp-rust"
+name = "ht-mcp"
 version = "0.1.0"
-edition = "2024"
-rust-version = "1.85"
-license = "Apache-2.0"
-description = "Pure Rust MCP server for headless terminal interactions"
-repository = "https://github.com/your-org/ht-mcp-rust"
+edition = "2021"
+rust-version = "1.70"
+license = "MIT"
+description = "Pure Rust MCP server for headless terminal interactions with embedded HT library"
+repository = "https://github.com/memextech/ht-mcp"
+homepage = "https://github.com/memextech/ht-mcp"
+documentation = "https://docs.rs/ht-mcp"
+keywords = ["mcp", "terminal", "headless", "automation", "memex"]
+categories = ["command-line-utilities", "development-tools", "api-bindings"]
+authors = ["Memex Tech <opensource@memex.tech>"]
+readme = "README.md"
+include = [
+    "src/**/*",
+    "ht-core/**/*",
+    "assets/**/*",
+    "examples/**/*",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+]
+
+# Crate publishing metadata
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 # MCP SDK - using the official rust-sdk

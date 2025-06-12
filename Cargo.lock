@@ -580,7 +580,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ht-mcp-rust"
+name = "ht-mcp"
 version = "0.1.0"
 dependencies = [
  "anyhow",

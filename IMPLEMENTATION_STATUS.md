@@ -70,7 +70,7 @@ This proves:
 ### ✅ Architecture Advantages Achieved
 
 **Single Binary Deployment:**
-- 4.7MB optimized Rust binary (`~/ht-mcp-rust`)
+- 4.7MB optimized Rust binary (`~/ht-mcp`)
 - No Node.js dependencies 
 - No subprocess overhead (embedded HT library)
 - Memory safe with zero-cost abstractions

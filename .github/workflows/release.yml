@@ -1,0 +1,243 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # Pre-release validation
+  validate:
+    name: Pre-release Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ubuntu-validation-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      
+      - name: Run tests
+        run: cargo test --all-features
+
+      - name: Security audit
+        run: |
+          cargo install cargo-audit
+          cargo audit
+
+  # Create GitHub release
+  create-release:
+    name: Create Release
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.extract_version.outputs.version }}
+
+    steps:
+      - name: Extract version
+        id: extract_version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.extract_version.outputs.version }}
+          release_name: HT-MCP ${{ steps.extract_version.outputs.version }}
+          body: |
+            ## What's Changed
+
+            See [CHANGELOG.md](https://github.com/memextech/ht-mcp/blob/main/CHANGELOG.md) for detailed changes.
+
+            ## Installation
+
+            ### Cargo
+            ```bash
+            cargo install ht-mcp
+            ```
+
+            ### Pre-built Binaries
+            Download the appropriate binary for your platform below:
+
+            - **macOS**: `ht-mcp-macos-x86_64` (Intel) or `ht-mcp-macos-aarch64` (Apple Silicon)
+            - **Linux**: `ht-mcp-linux-x86_64` (glibc) or `ht-mcp-linux-x86_64-musl` (static)
+            - **Windows**: `ht-mcp-windows-x86_64.exe`
+
+          draft: false
+          prerelease: ${{ contains(steps.extract_version.outputs.version, 'alpha') || contains(steps.extract_version.outputs.version, 'beta') || contains(steps.extract_version.outputs.version, 'rc') }}
+
+  # Build and upload binaries
+  build-release:
+    name: Build Release
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            cross: false
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            cross: true
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            cross: true
+          - os: macos-13  # Intel
+            target: x86_64-apple-darwin
+            cross: false
+          - os: macos-14  # Apple Silicon
+            target: aarch64-apple-darwin
+            cross: false
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            cross: false
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-${{ matrix.target }}-release-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Build release binary
+        run: |
+          if [[ "${{ matrix.cross }}" == "true" ]]; then
+            cross build --release --locked --target ${{ matrix.target }}
+          else
+            cargo build --release --locked --target ${{ matrix.target }}
+          fi
+
+      - name: Prepare binary for upload  
+        run: |
+          cd target/${{ matrix.target }}/release
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            BINARY_NAME="ht-mcp.exe"
+            ASSET_NAME="ht-mcp-${{ matrix.target }}.exe"
+          else
+            BINARY_NAME="ht-mcp"
+            ASSET_NAME="ht-mcp-${{ matrix.target }}"
+          fi
+          
+          # Strip binary (except on Windows)
+          if [[ "${{ runner.os }}" != "Windows" ]]; then
+            strip $BINARY_NAME || true
+          fi
+          
+          # Create checksum
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            powershell -Command "(Get-FileHash $BINARY_NAME -Algorithm SHA256).Hash.ToLower() + '  $ASSET_NAME'" > $ASSET_NAME.sha256
+          else
+            shasum -a 256 $BINARY_NAME | sed "s/$BINARY_NAME/$ASSET_NAME/" > $ASSET_NAME.sha256
+          fi
+          
+          # Rename binary
+          mv $BINARY_NAME $ASSET_NAME
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./target/${{ matrix.target }}/release/ht-mcp-${{ matrix.target }}${{ runner.os == 'Windows' && '.exe' || '' }}
+          asset_name: ht-mcp-${{ matrix.target }}${{ runner.os == 'Windows' && '.exe' || '' }}
+          asset_content_type: application/octet-stream
+
+      - name: Upload Checksum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./target/${{ matrix.target }}/release/ht-mcp-${{ matrix.target }}${{ runner.os == 'Windows' && '.exe' || '' }}.sha256
+          asset_name: ht-mcp-${{ matrix.target }}${{ runner.os == 'Windows' && '.exe' || '' }}.sha256
+          asset_content_type: text/plain
+
+  # Publish to crates.io
+  publish-crate:
+    name: Publish to Crates.io
+    needs: [create-release, build-release]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(needs.create-release.outputs.version, 'alpha') && !contains(needs.create-release.outputs.version, 'beta') && !contains(needs.create-release.outputs.version, 'rc')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ubuntu-publish-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --token $CARGO_REGISTRY_TOKEN

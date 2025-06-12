@@ -1,0 +1,135 @@
+name: 💡 Feature Request
+description: Suggest a new feature or enhancement for HT-MCP
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for your interest in improving HT-MCP! Please describe your feature request below.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm the following before submitting a feature request
+      options:
+        - label: I have searched existing issues and discussions to avoid duplicates
+          required: true
+        - label: I have reviewed the roadmap and planned features
+          required: true
+        - label: This feature would benefit the broader HT-MCP community
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve?
+      placeholder: |
+        Describe the problem or limitation you're experiencing.
+        What use case is not currently supported?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your ideal solution
+      placeholder: |
+        What would you like to happen?
+        How should this feature work?
+        Include any specific requirements or behaviors.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Have you considered alternative approaches?
+      placeholder: |
+        Describe any alternative solutions or features you've considered.
+        Are there workarounds you're currently using?
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Implementation Complexity
+      description: How complex do you think this feature would be to implement?
+      options:
+        - "Low - Minor change or addition"
+        - "Medium - Moderate development effort"
+        - "High - Significant development effort"
+        - "Unknown - Need more investigation"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - "Critical - Blocking my use of HT-MCP"
+        - "High - Would significantly improve my workflow"
+        - "Medium - Would be nice to have"
+        - "Low - Minor improvement"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact Areas
+      description: Which areas of HT-MCP would this feature affect?
+      options:
+        - label: MCP Protocol Implementation
+        - label: Terminal Session Management
+        - label: Performance
+        - label: Security
+        - label: Documentation
+        - label: CI/CD and Testing
+        - label: Installation and Distribution
+        - label: Developer Experience
+        - label: End User Experience
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Usage Examples
+      description: Provide examples of how this feature would be used
+      placeholder: |
+        Show concrete examples of how users would interact with this feature.
+        Include code samples, command examples, or configuration samples if applicable.
+      render: text
+
+  - type: textarea
+    id: breaking-changes
+    attributes:
+      label: Breaking Changes
+      description: Would this feature introduce any breaking changes?
+      placeholder: |
+        Would this change existing APIs or behavior?
+        How could breaking changes be minimized?
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information about this feature request
+      placeholder: |
+        - Are there similar features in other tools?
+        - Links to relevant documentation or specifications
+        - Screenshots or mockups if applicable
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you be willing to help implement this feature?
+      options:
+        - label: I would be willing to submit a PR to implement this feature
+        - label: I would like to help design the implementation
+        - label: I would be available to test and provide feedback

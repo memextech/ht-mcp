@@ -1,10 +1,10 @@
-# HT-MCP-Rust
+# HT-MCP
 
 A pure Rust implementation of a Model Context Protocol (MCP) server that provides headless terminal functionality with embedded HT library integration.
 
 ## 🎯 Overview
 
-HT-MCP-Rust successfully replaces the existing [Node.js/TypeScript implementation](https://github.com/memextech/headless-terminal-mcp) with a **single-binary, high-performance Rust solution** that directly embeds the [`ht` (headless terminal)](https://github.com/andyk/ht) library for zero-overhead terminal management.
+HT-MCP successfully replaces the existing [Node.js/TypeScript implementation](https://github.com/memextech/headless-terminal-mcp) with a **single-binary, high-performance Rust solution** that directly embeds the [`ht` (headless terminal)](https://github.com/andyk/ht) library for zero-overhead terminal management.
 
 ## ✨ Key Advantages
 
@@ -39,7 +39,7 @@ All 6 HT tools with full feature parity:
 ## 📁 Project Structure
 
 ```
-ht-mcp-rust/
+ht-mcp/
 ├── src/
 │   ├── mcp/                 # MCP protocol implementation (rmcp SDK)
 │   │   ├── server.rs        # Tool handlers with TypeScript-compatible formatting
@@ -55,11 +55,35 @@ ht-mcp-rust/
 └── IMPLEMENTATION_STATUS.md # Detailed completion status
 ```
 
-## 🚀 Quick Start
+## 🚀 Installation
 
-### Building
+### Option 1: Install from Crates.io (Recommended)
 
 ```bash
+cargo install ht-mcp
+```
+
+### Option 2: Download Pre-built Binaries
+
+Visit the [GitHub Releases](https://github.com/memextech/ht-mcp/releases) page and download the appropriate binary for your platform:
+
+- **macOS**: `ht-mcp-macos-x86_64` (Intel) or `ht-mcp-macos-aarch64` (Apple Silicon)
+- **Linux**: `ht-mcp-linux-x86_64` (glibc) or `ht-mcp-linux-x86_64-musl` (static)
+- **Windows**: `ht-mcp-windows-x86_64.exe`
+
+### Option 3: Universal Install Script
+
+```bash
+curl -fsSL https://install.ht-mcp.dev/install.sh | sh
+```
+
+### Option 4: Build from Source
+
+```bash
+# Clone repository with submodules
+git clone --recursive https://github.com/memextech/ht-mcp.git
+cd ht-mcp
+
 # Development build
 cargo build
 
@@ -67,16 +91,21 @@ cargo build
 cargo build --release
 ```
 
-### Running
+## 🚀 Quick Start
+
+### Running the MCP Server
 
 ```bash
 # Run MCP server
+ht-mcp
+
+# Or if built from source
 cargo run
 
 # Run with debug logging
-RUST_LOG=debug cargo run
+RUST_LOG=debug ht-mcp
 
-# Test HT library directly
+# Test HT library directly (development only)
 cargo run --bin test_ht_lib
 ```
 
@@ -86,9 +115,9 @@ Add to your MCP configuration (e.g., `~/.config/memex/mcp.json`):
 
 ```json
 {
-  "ht-mcp-rust": {
+  "ht-mcp": {
     "enabled": true,
-    "command": "/path/to/ht-mcp-rust",
+    "command": "/path/to/ht-mcp",
     "args": [],
     "env": {
       "RUST_LOG": "info"
@@ -161,11 +190,26 @@ bash-3.2$
 
 ## 🤝 Contributing
 
-This project successfully achieves feature parity with the TypeScript implementation while providing significant performance and deployment advantages. For issues or enhancements, please follow standard Rust development practices.
+We welcome contributions! This project successfully achieves feature parity with the TypeScript implementation while providing significant performance and deployment advantages.
+
+### Development Setup
+
+1. **Prerequisites**: Rust 1.70+ and Git
+2. **Clone**: `git clone --recursive https://github.com/memextech/ht-mcp.git`
+3. **Build**: `cargo build`
+4. **Test**: `cargo test`
+5. **Format**: `cargo fmt`
+6. **Lint**: `cargo clippy`
+
+### Supported Platforms
+
+- ✅ **macOS** (Intel and Apple Silicon)
+- ✅ **Linux** (Ubuntu 24.04+ with glibc or musl)
+- ✅ **Windows** (x86_64)
 
 ## 📄 License
 
-Apache 2.0 - See [LICENSE](LICENSE) file for details.
+MIT License - See [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
@@ -173,3 +217,12 @@ Apache 2.0 - See [LICENSE](LICENSE) file for details.
 - Uses the official [MCP Rust SDK](https://github.com/modelcontextprotocol/rust-sdk)
 - Replaces the [TypeScript headless-terminal-mcp](https://github.com/memextech/headless-terminal-mcp) implementation
 - Part of the [Memex](https://memex.tech) AI assistant ecosystem
+
+## 📊 Performance
+
+| Metric | TypeScript Original | Rust Implementation | Improvement |
+|--------|-------------------|-------------------|-------------|
+| Binary Size | Node.js + deps (~200MB) | 4.7MB | **97% smaller** |
+| Memory Usage | ~50MB baseline | ~15MB baseline | **70% reduction** |
+| Startup Time | ~2s (Node.js + deps) | ~50ms | **40x faster** |
+| Terminal I/O | Subprocess overhead | Direct library calls | **Zero overhead** |

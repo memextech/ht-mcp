@@ -12,7 +12,7 @@ mod error;
 use crate::mcp::server::HtMcpServer;
 
 #[derive(Parser)]
-#[command(name = "ht-mcp-rust")]
+#[command(name = "ht-mcp")]
 #[command(about = "Pure Rust MCP server for headless terminal interactions")]
 struct Cli {
     /// Enable debug logging
