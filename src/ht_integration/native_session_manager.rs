@@ -82,14 +82,9 @@ impl NativeSessionManager {
             .await
             .map_err(|e| HtMcpError::Internal(format!("Failed to take snapshot: {}", e)))?;
 
-        let response = format!(
-            "Terminal snapshot for session {}\n\n```\n{}\n```",
-            args.session_id, snapshot
-        );
-
         Ok(serde_json::json!({
             "sessionId": args.session_id,
-            "snapshot": response
+            "snapshot": snapshot
         }))
     }
 
@@ -100,15 +95,10 @@ impl NativeSessionManager {
             .await
             .map_err(|e| HtMcpError::Internal(format!("Failed to execute command: {}", e)))?;
 
-        let response = format!(
-            "Executed command '{}' in session {}\n\n```\n{}\n```",
-            args.command, args.session_id, output
-        );
-
         Ok(serde_json::json!({
             "command": args.command,
             "sessionId": args.session_id,
-            "output": response
+            "output": output
         }))
     }
 

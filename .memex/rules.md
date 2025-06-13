@@ -106,17 +106,34 @@ mod tests {
 
 ## Recent Achievements
 - ✅ Fixed all CI pipeline issues
-- ✅ Resolved cross-platform command compatibility
+- ✅ Resolved cross-platform command compatibility  
 - ✅ Implemented conditional test compilation
 - ✅ Configured proper Rust linting
 - ✅ Established reliable CI matrix
 - ✅ Both CI workflows now passing consistently
+- ✅ **FIXED: Parameter name mismatch in MCP schemas** 
+- ✅ **FIXED: Response formatting to match TypeScript implementation**
+
+## Critical Bug Fixes (Latest)
+### Parameter Name Mismatch Fix
+- **Issue**: MCP schema exposed `session_id` but Rust structs expected `sessionId`
+- **Root Cause**: Hardcoded schemas in main.rs vs proper schema functions in types.rs
+- **Solution**: Updated main.rs to use schema functions from types.rs
+- **Result**: All tools now work correctly with proper parameter names
+
+### Response Formatting Fix  
+- **Issue**: Server returned raw JSON instead of formatted text like TypeScript version
+- **Root Cause**: main.rs serialized JSON response instead of extracting formatted text
+- **Solution**: Added `format_tool_response()` function matching TypeScript patterns
+- **Result**: Perfect response format compatibility with markdown code blocks
 
 ## Current Status
-- **Last Commit**: `97f1c0d` - "fix: Add missing RUSTFLAGS to test-ci workflow"
+- **All MCP Tools**: Fully functional with proper parameter handling ✅
+- **Response Format**: Matches TypeScript implementation exactly ✅ 
+- **Text Formatting**: Human-readable with markdown code blocks ✅
+- **Web Server Integration**: Working with emoji indicators ✅
 - **CI Status**: All workflows passing ✅
-- **Ready For**: Merge to main or additional feature development
-- **Next Steps**: Ready for production deployment or feature extension
+- **Ready For**: Production deployment and feature extension
 
 ## Key Learnings
 1. **Platform Focus**: ht-mcp is inherently Unix/Linux focused
