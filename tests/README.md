@@ -1,112 +1,118 @@
-# HT-MCP-Rust Test Suite
+# Testing Documentation
 
-This directory contains the focused test suite for the HT-MCP-Rust project, covering unit and integration testing.
+This directory contains the test suite for ht-mcp, organized according to Rust best practices.
 
-## Directory Structure
+## Test Structure
 
-```
-tests/
-├── unit/                   # Unit tests for individual components
-│   ├── command_bridge/     # Tests for key translation
-│   ├── session_manager/    # Tests for session management
-│   ├── mcp/               # Tests for MCP protocol handling
-│   └── ht_integration/    # Tests for HT library integration
-├── integration/           # Integration tests for complete workflows
-│   ├── mcp_protocol/      # MCP protocol compliance tests
-│   ├── terminal_sessions/ # Terminal session lifecycle tests
-│   ├── error_handling/    # Error condition tests
-│   └── performance/       # Basic performance validation
-├── fixtures/              # Test data and mock files
-└── helpers/               # Test utilities and helper functions
+### Integration Tests (`tests/`)
+- `integration_mcp_protocol.rs` - MCP protocol compliance tests
+- `integration_terminal_functionality.rs` - End-to-end terminal workflow tests  
+- `unit_response_formatting.rs` - Response formatting unit tests
+
+### Unit Tests
+Unit tests are embedded in source files using `#[cfg(test)]` modules:
+- `src/ht_integration/native_session_manager.rs` - Session management tests
+- `src/ht_integration/native_webserver.rs` - Web server tests
+
+### Examples (`examples/`)
+- `ht_library_usage.rs` - Direct HT library usage example
+
+## Running Tests
+
+```bash
+# Run all tests (unit + integration)
+cargo test
+
+# Run only integration tests
+cargo test --test integration_mcp_protocol
+cargo test --test integration_terminal_functionality
+
+# Run only unit tests
+cargo test --lib
+
+# Run with debug output
+RUST_LOG=debug cargo test -- --nocapture
+
+# Run examples
+cargo run --example ht_library_usage
 ```
 
 ## Test Categories
 
+### Protocol Tests
+- MCP JSON-RPC 2.0 compliance
+- Tool registration and discovery
+- Parameter validation
+- Error response formats
+
+### Functionality Tests  
+- Complete terminal workflow (create → use → close)
+- Session lifecycle management
+- Command execution and output capture
+- Web server integration
+- Response format validation
+
 ### Unit Tests
-- Individual component testing
-- Mock dependencies where appropriate
-- Fast execution (< 1s per test)
-- High code coverage focus
+- Response formatting functions
+- Parameter parsing logic
+- Error handling edge cases
+
+## CI Considerations
+
+Tests are configured for CI environments:
+- Integration tests that require terminals are marked with `#[cfg(not(ci))]`
+- No external dependencies required
+- Proper resource cleanup
+- Clear error messages
+
+## Adding New Tests
 
 ### Integration Tests
-- Component interaction testing
-- Real terminal processes (limited)
-- Moderate execution time (1-10s per test)
-- Protocol compliance validation
-
-### Manual Testing
-- End-to-end scenarios are tested manually using provided test scripts
-- Real-world usage validation
-- Performance under load
-- Long-running stability tests
-
-## Running Tests
-
-### All Tests
-```bash
-cargo test
+Create new files in `tests/` for integration testing:
+```rust
+#[tokio::test]
+async fn test_new_feature() {
+    // Test complete workflows
+}
 ```
 
-### Unit Tests Only
-```bash
-cargo test --test unit
+### Unit Tests
+Add to existing source files:
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_function() {
+        // Test individual functions
+    }
+}
 ```
 
-### Integration Tests Only
-```bash
-cargo test --test integration
+### Examples
+Add to `examples/` for demonstration code:
+```rust
+//! Example demonstrating feature X
+//! Run with: `cargo run --example example_name`
+
+fn main() {
+    // Demonstration code
+}
 ```
 
-### Benchmarks
-```bash
-cargo bench
-```
+## Test Coverage
 
-### With Coverage
-```bash
-cargo tarpaulin --out html
-```
+Current coverage:
+- ✅ MCP protocol compliance
+- ✅ All 6 tools functionality  
+- ✅ Response format validation
+- ✅ Error handling
+- ✅ Web server integration
+- ✅ Session lifecycle management
 
-## Test Data
-
-Test fixtures and mock data are stored in the `fixtures/` directory. These include:
-- Sample MCP messages
-- Terminal output samples
-- Configuration files for different test scenarios
-
-## Continuous Integration
-
-The test suite is designed to run in CI environments with:
-- Fast feedback for unit tests
-- Scheduled integration and performance tests
-- Coverage reporting
-- Performance regression detection
-
-## Writing Tests
-
-### Guidelines
-1. Use descriptive test names that explain the scenario
-2. Follow the Arrange-Act-Assert pattern
-3. Use appropriate test fixtures for data
-4. Mock external dependencies appropriately
-5. Include both positive and negative test cases
-
-### Naming Conventions
-- Test files: `test_[component_name].rs`
-- Test functions: `test_[behavior]_[expected_outcome]()`
-- Test modules: Match the source code structure
-
-## Performance Baselines
-
-Performance tests include baseline measurements for:
-- Session creation: < 100ms
-- Key input latency: < 10ms
-- Snapshot capture: < 50ms
-- Memory usage: < 10MB per session
-- Concurrent sessions: Support 100+ sessions
-
-## Test Coverage Goals
-
-- Unit tests: > 90% line coverage
-- Integration tests: > 80% feature coverage
-- E2E tests: 100% critical path coverage
+Future additions:
+- Performance benchmarks (`benches/`)
+- Property-based testing
+- Fuzzing tests
+- Load testing
