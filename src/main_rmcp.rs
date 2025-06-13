@@ -9,7 +9,7 @@ mod ht_integration;
 mod transport;
 mod error;
 
-use mcp::server::HtMcpServer;
+use crate::mcp::server::HtMcpServer;
 
 #[derive(Parser)]
 #[command(name = "ht-mcp")]
