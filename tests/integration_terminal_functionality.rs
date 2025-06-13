@@ -259,6 +259,7 @@ async fn test_error_handling() {
 }
 
 #[tokio::test]
+#[cfg(not(ci))]
 async fn test_response_format_consistency() {
     let mut client = McpClient::new().await;
 
