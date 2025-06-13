@@ -276,7 +276,7 @@ fn format_tool_response(tool_name: &str, result: &serde_json::Value) -> String {
             let session_id = result["sessionId"].as_str().unwrap_or("unknown");
             let web_server_enabled = result["webServerEnabled"].as_bool().unwrap_or(false);
             let web_server_url = result["webServerUrl"].as_str();
-            
+
             let web_server_info = if web_server_enabled {
                 if let Some(url) = web_server_url {
                     format!("\n\n🌐 Web server enabled! View live terminal at: {}", url)
@@ -286,7 +286,7 @@ fn format_tool_response(tool_name: &str, result: &serde_json::Value) -> String {
             } else {
                 String::new()
             };
-            
+
             format!(
                 "HT session created successfully!\n\nSession ID: {}\n\nYou can now use this session ID with other HT tools to send commands and take snapshots.{}",
                 session_id, web_server_info
@@ -294,19 +294,25 @@ fn format_tool_response(tool_name: &str, result: &serde_json::Value) -> String {
         }
         "ht_send_keys" => {
             let session_id = result["sessionId"].as_str().unwrap_or("unknown");
-            let keys = result["keys"].as_array()
-                .map(|arr| arr.iter().map(|v| v.as_str().unwrap_or("").to_string()).collect::<Vec<_>>())
+            let keys = result["keys"]
+                .as_array()
+                .map(|arr| {
+                    arr.iter()
+                        .map(|v| v.as_str().unwrap_or("").to_string())
+                        .collect::<Vec<_>>()
+                })
                 .unwrap_or_default();
-            
+
             format!(
                 "Keys sent successfully to session {}\n\nKeys: {}",
-                session_id, serde_json::to_string(&keys).unwrap_or_else(|_| "[]".to_string())
+                session_id,
+                serde_json::to_string(&keys).unwrap_or_else(|_| "[]".to_string())
             )
         }
         "ht_take_snapshot" => {
             let session_id = result["sessionId"].as_str().unwrap_or("unknown");
             let snapshot = result["snapshot"].as_str().unwrap_or("No snapshot data");
-            
+
             format!(
                 "Terminal Snapshot (Session: {})\n\n```\n{}\n```",
                 session_id, snapshot
@@ -315,7 +321,7 @@ fn format_tool_response(tool_name: &str, result: &serde_json::Value) -> String {
         "ht_execute_command" => {
             let command = result["command"].as_str().unwrap_or("unknown");
             let output = result["output"].as_str().unwrap_or("No output");
-            
+
             format!(
                 "Command executed: {}\n\nTerminal Output:\n```\n{}\n```",
                 command, output
@@ -325,19 +331,31 @@ fn format_tool_response(tool_name: &str, result: &serde_json::Value) -> String {
             let count = result["count"].as_u64().unwrap_or(0);
             let default_sessions = vec![];
             let sessions = result["sessions"].as_array().unwrap_or(&default_sessions);
-            
+
             if sessions.is_empty() {
                 format!("Active HT Sessions ({}):\n\nNo active sessions", count)
             } else {
-                let session_list: Vec<String> = sessions.iter().map(|session| {
-                    let id = session["id"].as_str().unwrap_or("unknown");
-                    let is_alive = session["isAlive"].as_bool().unwrap_or(false);
-                    let created_at = session["createdAt"].as_u64().unwrap_or(0);
-                    
-                    format!("- {} ({}) - Created: {}", id, if is_alive { "alive" } else { "dead" }, created_at)
-                }).collect();
-                
-                format!("Active HT Sessions ({}):\n\n{}", count, session_list.join("\n"))
+                let session_list: Vec<String> = sessions
+                    .iter()
+                    .map(|session| {
+                        let id = session["id"].as_str().unwrap_or("unknown");
+                        let is_alive = session["isAlive"].as_bool().unwrap_or(false);
+                        let created_at = session["createdAt"].as_u64().unwrap_or(0);
+
+                        format!(
+                            "- {} ({}) - Created: {}",
+                            id,
+                            if is_alive { "alive" } else { "dead" },
+                            created_at
+                        )
+                    })
+                    .collect();
+
+                format!(
+                    "Active HT Sessions ({}):\n\n{}",
+                    count,
+                    session_list.join("\n")
+                )
             }
         }
         "ht_close_session" => {
@@ -346,7 +364,8 @@ fn format_tool_response(tool_name: &str, result: &serde_json::Value) -> String {
         }
         _ => {
             // Fallback to JSON pretty print for unknown tools
-            serde_json::to_string_pretty(result).unwrap_or_else(|_| "Error formatting result".to_string())
+            serde_json::to_string_pretty(result)
+                .unwrap_or_else(|_| "Error formatting result".to_string())
         }
     }
 }

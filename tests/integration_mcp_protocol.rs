@@ -1,6 +1,6 @@
-use std::process::{Command, Stdio};
-use std::io::{BufRead, BufReader, Write};
 use serde_json::{json, Value};
+use std::io::{BufRead, BufReader, Write};
+use std::process::{Command, Stdio};
 #[cfg(not(ci))]
 use std::time::Duration;
 
@@ -47,7 +47,7 @@ async fn test_mcp_protocol_basic_flow() {
 
     send_message(&mut stdin, init_msg);
     let response = read_response(&mut reader);
-    
+
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(response["id"], 1);
     assert!(response["result"].is_object());
@@ -74,7 +74,7 @@ async fn test_mcp_protocol_basic_flow() {
     assert_eq!(tools_response["id"], 2);
     let tools = &tools_response["result"]["tools"];
     assert!(tools.is_array());
-    
+
     // Verify all 6 tools are present
     let tool_names: Vec<&str> = tools
         .as_array()
@@ -82,7 +82,7 @@ async fn test_mcp_protocol_basic_flow() {
         .iter()
         .map(|t| t["name"].as_str().unwrap())
         .collect();
-    
+
     assert!(tool_names.contains(&"ht_create_session"));
     assert!(tool_names.contains(&"ht_send_keys"));
     assert!(tool_names.contains(&"ht_take_snapshot"));
@@ -94,7 +94,7 @@ async fn test_mcp_protocol_basic_flow() {
     child.kill().expect("Failed to kill child process");
 }
 
-#[tokio::test] 
+#[tokio::test]
 async fn test_create_session_tool() {
     let mut child = Command::new("cargo")
         .args(&["run", "--"])
@@ -125,7 +125,7 @@ async fn test_create_session_tool() {
     };
 
     init_and_notify(&mut stdin);
-    
+
     // Read init response
     let mut line = String::new();
     reader.read_line(&mut line).unwrap();
@@ -153,7 +153,10 @@ async fn test_create_session_tool() {
     let response: Value = serde_json::from_str(&response_line.trim()).unwrap();
 
     assert_eq!(response["id"], 2);
-    assert!(response["result"]["content"][0]["text"].as_str().unwrap().contains("Session ID:"));
+    assert!(response["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap()
+        .contains("Session ID:"));
 
     // Clean up
     child.kill().expect("Failed to kill child process");

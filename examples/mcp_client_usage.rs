@@ -1,5 +1,5 @@
 //! Example demonstrating MCP protocol interaction with ht-mcp server
-//! 
+//!
 //! This example shows how to interact with the ht-mcp server using
 //! the MCP JSON-RPC protocol for terminal automation.
 //!
@@ -57,7 +57,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     send_message(&mut stdin, init_msg);
     let init_response = read_response(&mut reader);
-    println!("✅ Server initialized: {}", init_response["result"]["serverInfo"]["name"]);
+    println!(
+        "✅ Server initialized: {}",
+        init_response["result"]["serverInfo"]["name"]
+    );
 
     // Send initialized notification
     let initialized = json!({
@@ -84,7 +87,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     send_message(&mut stdin, create_session);
     let create_response = read_response(&mut reader);
-    let session_text = create_response["result"]["content"][0]["text"].as_str().unwrap();
+    let session_text = create_response["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap();
     println!("✅ {}", session_text);
 
     // Extract session ID from response
@@ -113,7 +118,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     send_message(&mut stdin, send_keys);
     let keys_response = read_response(&mut reader);
-    println!("📤 {}", keys_response["result"]["content"][0]["text"].as_str().unwrap());
+    println!(
+        "📤 {}",
+        keys_response["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+    );
 
     // Wait for command to execute
     tokio::time::sleep(Duration::from_millis(1000)).await;
@@ -135,7 +145,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     send_message(&mut stdin, snapshot);
     let snapshot_response = read_response(&mut reader);
-    println!("📋 {}", snapshot_response["result"]["content"][0]["text"].as_str().unwrap());
+    println!(
+        "📋 {}",
+        snapshot_response["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+    );
 
     println!("🚀 Executing command directly...");
 
@@ -155,7 +170,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     send_message(&mut stdin, execute);
     let execute_response = read_response(&mut reader);
-    println!("💻 {}", execute_response["result"]["content"][0]["text"].as_str().unwrap());
+    println!(
+        "💻 {}",
+        execute_response["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+    );
 
     println!("📋 Listing all sessions...");
 
@@ -172,7 +192,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     send_message(&mut stdin, list);
     let list_response = read_response(&mut reader);
-    println!("📄 {}", list_response["result"]["content"][0]["text"].as_str().unwrap());
+    println!(
+        "📄 {}",
+        list_response["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+    );
 
     println!("🔒 Closing session...");
 
@@ -191,7 +216,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     send_message(&mut stdin, close);
     let close_response = read_response(&mut reader);
-    println!("✅ {}", close_response["result"]["content"][0]["text"].as_str().unwrap());
+    println!(
+        "✅ {}",
+        close_response["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+    );
 
     // Clean up
     child.kill().expect("Failed to kill child process");
