@@ -67,7 +67,7 @@ tower-http = { version = "0.5", features = ["cors", "fs"] }
 hyper = "1.0"
 
 # Local HT library
-ht = { path = "./ht-core" }
+ht-core = { path = "./ht-core" }
 
 [dev-dependencies]
 tokio-test = "0.4"

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 use std::net::{SocketAddr, TcpListener};
 use uuid::Uuid;
-use ht::{session::Session, pty, api::http, cli::Size};
+use ht_core::{session::Session, pty, api::http, cli::Size};
 use std::str::FromStr;
 use crate::mcp::types::*;
 use crate::error::{HtMcpError, Result};
@@ -13,7 +13,7 @@ use tracing::{info, error};
 // Enhanced command type that supports responses
 #[derive(Debug)]
 pub enum SessionCommand {
-    Input(Vec<ht::command::InputSeq>),
+    Input(Vec<ht_core::command::InputSeq>),
     Snapshot(oneshot::Sender<String>),
     Resize(usize, usize),
 }
@@ -124,7 +124,7 @@ impl SessionManager {
                     command = command_rx.recv() => {
                         match command {
                             Some(SessionCommand::Input(seqs)) => {
-                                let data = ht::command::seqs_to_bytes(&seqs, session.cursor_key_app_mode());
+                                let data = ht_core::command::seqs_to_bytes(&seqs, session.cursor_key_app_mode());
                                 if let Err(e) = input_tx.send(data).await {
                                     error!("Failed to send input to PTY: {}", e);
                                 }
@@ -203,7 +203,7 @@ impl SessionManager {
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
         // Convert keys to InputSeq format using HT's command parsing
-        let input_seqs: Vec<ht::command::InputSeq> = args.keys.iter()
+        let input_seqs: Vec<ht_core::command::InputSeq> = args.keys.iter()
             .map(|key| parse_key_to_input_seq(key))
             .collect();
 
@@ -312,8 +312,8 @@ impl SessionManager {
 }
 
 /// Converts a key string to InputSeq for HT library
-fn parse_key_to_input_seq(key: &str) -> ht::command::InputSeq {
-    use ht::command::InputSeq;
+fn parse_key_to_input_seq(key: &str) -> ht_core::command::InputSeq {
+    use ht_core::command::InputSeq;
     match key {
         "Enter" => InputSeq::Standard("\n".to_string()),
         "Tab" => InputSeq::Standard("\t".to_string()),
