@@ -1,6 +1,6 @@
-use std::process::{Command, Stdio};
-use std::io::{BufRead, BufReader, Write};
 use serde_json::{json, Value};
+use std::io::{BufRead, BufReader, Write};
+use std::process::{Command, Stdio};
 #[cfg(not(ci))]
 use std::time::Duration;
 
@@ -50,7 +50,7 @@ impl McpClient {
                 "clientInfo": {"name": "test-client", "version": "1.0.0"}
             }
         });
-        
+
         self.send_message(init_msg);
         let _response = self.read_response();
 
@@ -124,12 +124,18 @@ async fn test_complete_terminal_workflow() {
     let mut client = McpClient::new().await;
 
     // Test 1: Create session
-    let create_response = client.call_tool("ht_create_session", json!({
-        "command": ["bash"],
-        "enableWebServer": false
-    }));
+    let create_response = client.call_tool(
+        "ht_create_session",
+        json!({
+            "command": ["bash"],
+            "enableWebServer": false
+        }),
+    );
 
-    assert!(create_response["result"]["content"][0]["text"].as_str().unwrap().contains("Session ID:"));
+    assert!(create_response["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap()
+        .contains("Session ID:"));
     let session_id = client.extract_session_id(&create_response);
     assert!(!session_id.is_empty());
 
@@ -140,10 +146,13 @@ async fn test_complete_terminal_workflow() {
     assert!(list_text.contains(&session_id));
 
     // Test 3: Send keys
-    let send_keys_response = client.call_tool("ht_send_keys", json!({
-        "sessionId": session_id,
-        "keys": ["echo 'test command'", "Enter"]
-    }));
+    let send_keys_response = client.call_tool(
+        "ht_send_keys",
+        json!({
+            "sessionId": session_id,
+            "keys": ["echo 'test command'", "Enter"]
+        }),
+    );
     let keys_text = client.extract_text_response(&send_keys_response);
     assert!(keys_text.contains("Keys sent successfully"));
     assert!(keys_text.contains(&session_id));
@@ -152,35 +161,46 @@ async fn test_complete_terminal_workflow() {
     tokio::time::sleep(Duration::from_millis(1000)).await;
 
     // Test 4: Take snapshot
-    let snapshot_response = client.call_tool("ht_take_snapshot", json!({
-        "sessionId": session_id
-    }));
+    let snapshot_response = client.call_tool(
+        "ht_take_snapshot",
+        json!({
+            "sessionId": session_id
+        }),
+    );
     let snapshot_text = client.extract_text_response(&snapshot_response);
     assert!(snapshot_text.contains("Terminal Snapshot"));
-    assert!(snapshot_text.contains("```"));  // Should have markdown code blocks
-    assert!(snapshot_text.contains("test command"));  // Should show our command
+    assert!(snapshot_text.contains("```")); // Should have markdown code blocks
+    assert!(snapshot_text.contains("test command")); // Should show our command
 
     // Test 5: Execute command
-    let execute_response = client.call_tool("ht_execute_command", json!({
-        "sessionId": session_id,
-        "command": "whoami"
-    }));
+    let execute_response = client.call_tool(
+        "ht_execute_command",
+        json!({
+            "sessionId": session_id,
+            "command": "whoami"
+        }),
+    );
     let execute_text = client.extract_text_response(&execute_response);
     assert!(execute_text.contains("Command executed: whoami"));
     assert!(execute_text.contains("Terminal Output:"));
     assert!(execute_text.contains("```"));
 
     // Test 6: Close session
-    let close_response = client.call_tool("ht_close_session", json!({
-        "sessionId": session_id
-    }));
+    let close_response = client.call_tool(
+        "ht_close_session",
+        json!({
+            "sessionId": session_id
+        }),
+    );
     let close_text = client.extract_text_response(&close_response);
     assert!(close_text.contains("closed successfully"));
 
     // Test 7: Verify session is closed
     let final_list = client.call_tool("ht_list_sessions", json!({}));
     let final_text = client.extract_text_response(&final_list);
-    assert!(final_text.contains("Active HT Sessions (0)") || final_text.contains("No active sessions"));
+    assert!(
+        final_text.contains("Active HT Sessions (0)") || final_text.contains("No active sessions")
+    );
 }
 
 #[tokio::test]
@@ -188,16 +208,19 @@ async fn test_web_server_enabled() {
     let mut client = McpClient::new().await;
 
     // Create session with web server enabled
-    let create_response = client.call_tool("ht_create_session", json!({
-        "command": ["bash"],
-        "enableWebServer": true
-    }));
+    let create_response = client.call_tool(
+        "ht_create_session",
+        json!({
+            "command": ["bash"],
+            "enableWebServer": true
+        }),
+    );
 
     let response_text = client.extract_text_response(&create_response);
-    
+
     // Should contain session ID
     assert!(response_text.contains("Session ID:"));
-    
+
     // Should contain web server info with emoji
     assert!(response_text.contains("🌐 Web server enabled!"));
     assert!(response_text.contains("http://127.0.0.1:"));
@@ -212,19 +235,25 @@ async fn test_error_handling() {
     let mut client = McpClient::new().await;
 
     // Test 1: Invalid session ID
-    let invalid_snapshot = client.call_tool("ht_take_snapshot", json!({
-        "sessionId": "invalid-session-id"
-    }));
-    
+    let invalid_snapshot = client.call_tool(
+        "ht_take_snapshot",
+        json!({
+            "sessionId": "invalid-session-id"
+        }),
+    );
+
     // Should return error
     assert!(invalid_snapshot.get("error").is_some());
 
     // Test 2: Missing required parameters
-    let missing_params = client.call_tool("ht_send_keys", json!({
-        "sessionId": "test"
-        // Missing "keys" parameter
-    }));
-    
+    let missing_params = client.call_tool(
+        "ht_send_keys",
+        json!({
+            "sessionId": "test"
+            // Missing "keys" parameter
+        }),
+    );
+
     assert!(missing_params.get("error").is_some());
 }
 
@@ -233,24 +262,33 @@ async fn test_response_format_consistency() {
     let mut client = McpClient::new().await;
 
     // Create session
-    let create_response = client.call_tool("ht_create_session", json!({
-        "command": ["bash"],
-        "enableWebServer": false
-    }));
+    let create_response = client.call_tool(
+        "ht_create_session",
+        json!({
+            "command": ["bash"],
+            "enableWebServer": false
+        }),
+    );
 
     let session_id = client.extract_session_id(&create_response);
 
     // Test that all responses follow the expected format
     let tests = vec![
         ("ht_list_sessions", json!({})),
-        ("ht_send_keys", json!({"sessionId": &session_id, "keys": ["echo test"]})),
+        (
+            "ht_send_keys",
+            json!({"sessionId": &session_id, "keys": ["echo test"]}),
+        ),
         ("ht_take_snapshot", json!({"sessionId": &session_id})),
-        ("ht_execute_command", json!({"sessionId": &session_id, "command": "echo test"})),
+        (
+            "ht_execute_command",
+            json!({"sessionId": &session_id, "command": "echo test"}),
+        ),
     ];
 
     for (tool_name, args) in tests {
         let response = client.call_tool(tool_name, args);
-        
+
         // All responses should have the expected MCP structure
         assert_eq!(response["jsonrpc"], "2.0");
         assert!(response["id"].is_number());
@@ -258,11 +296,11 @@ async fn test_response_format_consistency() {
         assert!(response["result"]["content"].is_array());
         assert_eq!(response["result"]["content"][0]["type"], "text");
         assert!(response["result"]["content"][0]["text"].is_string());
-        
+
         // All text responses should be human-readable (not JSON)
         let text = response["result"]["content"][0]["text"].as_str().unwrap();
-        assert!(!text.starts_with('{'));  // Should not be JSON
-        assert!(!text.starts_with('['));  // Should not be JSON array
+        assert!(!text.starts_with('{')); // Should not be JSON
+        assert!(!text.starts_with('[')); // Should not be JSON array
     }
 
     // Clean up
