@@ -2,9 +2,9 @@
 
 ## Overall Scope
 - **Project**: ht-mcp - A Rust-based MCP (Model Context Protocol) server for headless terminal interactions
-- **Repository**: https://github.com/memextech/ht-mcp
+- **Repository**: https://github.com/memextech/ht-mcp (PUBLIC)
 - **Current Branch**: feature/oss-setup  
-- **Status**: Production-ready with fully functional CI infrastructure
+- **Status**: Production-ready with fully functional CI infrastructure and public installation available
 
 ## User Preferences
 - Always use `uv` for Python environments (already installed)
@@ -99,8 +99,9 @@ mod tests {
 ```
 
 ### Deployment
-- Repository is ready for production use
-- Install via `cargo install` or build from source
+- Repository is PUBLIC and ready for production use
+- Install via `cargo install --git https://github.com/memextech/ht-mcp --branch feature/oss-setup ht-mcp`
+- Future: `cargo install ht-mcp` (once MCP SDK publishes to crates.io)
 - Requires Unix-like environment (Linux/macOS)
 
 ## Recent Achievements
