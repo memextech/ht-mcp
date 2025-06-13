@@ -1,5 +1,6 @@
 [workspace]
-members = [".", "ht-core"]
+members = ["."]
+exclude = ["ht-core"]
 resolver = "2"
 
 [package]
