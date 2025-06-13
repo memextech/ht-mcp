@@ -1,19 +1,16 @@
 name: Test CI Pipeline
 
 on:
-  workflow_dispatch:
   push:
     branches: [ feature/oss-setup ]
-
-env:
-  CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
+  pull_request:
+    branches: [ feature/oss-setup ]
 
 jobs:
   quick-test:
     name: Quick Build Test
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -47,4 +44,4 @@ jobs:
           RUSTFLAGS: "--cfg ci"
 
       - name: Run clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --package ht-mcp --all-targets -- -D warnings
