@@ -43,6 +43,8 @@ jobs:
 
       - name: Run tests
         run: cargo test --verbose
+        env:
+          RUSTFLAGS: "--cfg ci"
 
       - name: Run clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
