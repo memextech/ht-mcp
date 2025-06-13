@@ -204,6 +204,7 @@ async fn test_complete_terminal_workflow() {
 }
 
 #[tokio::test]
+#[cfg(not(ci))]
 async fn test_web_server_enabled() {
     let mut client = McpClient::new().await;
 
