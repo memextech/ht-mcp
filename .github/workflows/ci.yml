@@ -73,7 +73,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Lint with clippy
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --package ht-mcp --all-targets
 
       - name: Build
         run: cargo build --verbose

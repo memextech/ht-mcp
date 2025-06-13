@@ -167,7 +167,7 @@ impl SessionManager {
             id: session_id.clone(),
             internal_id,
             created_at: std::time::SystemTime::now(),
-            web_server_url: web_server_url,
+            web_server_url,
             is_alive: true,
             command: command.clone(),
             command_tx: Arc::new(command_tx),
