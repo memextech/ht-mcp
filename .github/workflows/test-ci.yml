@@ -2,9 +2,9 @@ name: Test CI Pipeline
 
 on:
   push:
-    branches: [ feature/oss-setup ]
+    branches: [ main, feature/oss-setup ]
   pull_request:
-    branches: [ feature/oss-setup ]
+    branches: [ main ]
 
 jobs:
   quick-test:

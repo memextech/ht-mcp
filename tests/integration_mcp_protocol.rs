@@ -1,6 +1,7 @@
 use std::process::{Command, Stdio};
 use std::io::{BufRead, BufReader, Write};
 use serde_json::{json, Value};
+#[cfg(not(ci))]
 use std::time::Duration;
 
 /// Integration test for MCP protocol compliance

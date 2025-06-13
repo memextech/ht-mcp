@@ -2,7 +2,7 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [ feature/oss-setup ]
+    branches: [ main, feature/oss-setup ]
   pull_request:
     branches: [ main ]
 
