@@ -23,6 +23,10 @@ include = [
     "CHANGELOG.md"
 ]
 
+# Lints configuration
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(ci)'] }
+
 # Crate publishing metadata
 [package.metadata.docs.rs]
 all-features = true
