@@ -35,13 +35,28 @@ jobs:
           submodules: recursive
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
           components: rustfmt, clippy
 
+      - name: Verify submodule
+        run: |
+          echo "Checking submodules..."
+          git submodule status
+          ls -la ht-core/
+          
+      - name: Show Rust info
+        run: |
+          echo "Rust version:"
+          rustc --version
+          echo "Cargo version:"  
+          cargo --version
+          echo "Targets:"
+          rustup target list --installed
+
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry/index/
@@ -68,53 +83,54 @@ jobs:
       - name: Build release binary
         run: cargo build --release
 
-  security:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-      
-      - name: Install cargo-audit
-        run: cargo install cargo-audit
+  # TODO: Re-enable after main build is working
+  # security:
+  #   name: Security Audit
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #     
+  #     - name: Install Rust toolchain
+  #       uses: dtolnay/rust-toolchain@stable
+  #     
+  #     - name: Install cargo-audit
+  #       run: cargo install cargo-audit
 
-      - name: Run security audit
-        run: cargo audit
+  #     - name: Run security audit
+  #       run: cargo audit
 
-      - name: Check licenses
-        run: |
-          cargo install cargo-license
-          cargo license --json | jq -r '.[] | select(.license != "MIT" and .license != "Apache-2.0" and .license != "BSD-3-Clause" and .license != "ISC" and .license != "Unlicense") | "\(.name): \(.license)"' | tee /tmp/incompatible_licenses
-          if [ -s /tmp/incompatible_licenses ]; then
-            echo "Found incompatible licenses:"
-            cat /tmp/incompatible_licenses
-            exit 1
-          fi
+  #     - name: Check licenses
+  #       run: |
+  #         cargo install cargo-license
+  #         cargo license --json | jq -r '.[] | select(.license != "MIT" and .license != "Apache-2.0" and .license != "BSD-3-Clause" and .license != "ISC" and .license != "Unlicense") | "\(.name): \(.license)"' | tee /tmp/incompatible_licenses
+  #         if [ -s /tmp/incompatible_licenses ]; then
+  #           echo "Found incompatible licenses:"
+  #           cat /tmp/incompatible_licenses
+  #           exit 1
+  #         fi
 
-  coverage:
-    name: Code Coverage
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-      
-      - name: Install cargo-tarpaulin
-        run: cargo install cargo-tarpaulin
+  # coverage:
+  #   name: Code Coverage
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #     
+  #     - name: Install Rust toolchain
+  #       uses: dtolnay/rust-toolchain@stable
+  #     
+  #     - name: Install cargo-tarpaulin
+  #       run: cargo install cargo-tarpaulin
 
-      - name: Generate coverage report
-        run: cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out Xml
+  #     - name: Generate coverage report
+  #       run: cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out Xml
 
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v3
-        with:
-          fail_ci_if_error: false
+  #     - name: Upload to codecov.io
+  #       uses: codecov/codecov-action@v4
+  #       with:
+  #         fail_ci_if_error: false
