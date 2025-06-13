@@ -224,6 +224,7 @@ impl SessionManager {
         Ok(serde_json::json!({
             "success": true,
             "message": format!("Keys sent successfully to session {}", args.session_id),
+            "sessionId": args.session_id,
             "keys": args.keys
         }))
     }
