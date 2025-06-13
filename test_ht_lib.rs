@@ -1,5 +1,5 @@
 // Simple test to verify HT library works directly
-use ht::{HtLibrary, SessionConfig, InputSeq};
+use ht_core::{HtLibrary, SessionConfig, InputSeq};
 use std::time::Duration;
 
 #[tokio::main]
