@@ -2,7 +2,7 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [ main, develop, feature/oss-setup ]
+    branches: [ feature/oss-setup ]
   pull_request:
     branches: [ main ]
 
@@ -44,7 +44,11 @@ jobs:
         run: |
           echo "Checking submodules..."
           git submodule status
-          ls -la ht-core/
+        shell: bash
+
+      - name: List ht-core contents
+        run: ls -la ht-core/
+        shell: bash
           
       - name: Show Rust info
         run: |
@@ -54,6 +58,7 @@ jobs:
           cargo --version
           echo "Targets:"
           rustup target list --installed
+        shell: bash
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -79,6 +84,8 @@ jobs:
 
       - name: Run tests
         run: cargo test --verbose
+        env:
+          RUSTFLAGS: "--cfg ci"
 
       - name: Build release binary
         run: cargo build --release
