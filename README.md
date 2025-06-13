@@ -36,17 +36,50 @@ ht-mcp-rust/
 └── tests/                   # Test suites
 ```
 
+## Installation
+
+### From Git (Recommended)
+
+Install directly from the public repository:
+
+```bash
+cargo install --git https://github.com/memextech/ht-mcp --branch feature/oss-setup ht-mcp
+```
+
+### From Crates.io (Future)
+
+Once the official MCP SDK publishes to crates.io:
+
+```bash
+cargo install ht-mcp
+```
+
+## Usage
+
+Start the MCP server:
+
+```bash
+ht-mcp
+```
+
+With debug logging:
+
+```bash
+ht-mcp --debug
+```
+
 ## Development Status
 
-🚧 **Work in Progress** 🚧
+✅ **Production Ready** 
 
-This project is currently under development. The basic project structure has been set up, but the following components are still being implemented:
+This project is feature-complete and production-ready:
 
-- [ ] HT library fork and integration
-- [ ] MCP protocol handlers
-- [ ] Session management with real HT library
-- [ ] Transport layer implementation
-- [ ] Comprehensive testing
+- ✅ HT library integration via embedded ht-core
+- ✅ Full MCP protocol implementation (6 tools)
+- ✅ Session management with real HT library
+- ✅ stdio transport layer
+- ✅ Comprehensive CI/CD pipeline
+- ✅ Cross-platform support (Linux/macOS)
 
 ## Building
 
