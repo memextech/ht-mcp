@@ -57,7 +57,7 @@ ht-mcp-rust/
 Install directly from the public repository:
 
 ```bash
-cargo install --git https://github.com/memextech/ht-mcp --branch feature/oss-setup ht-mcp
+cargo install --git https://github.com/memextech/ht-mcp ht-mcp
 ```
 
 ### From Crates.io (Future)
@@ -74,12 +74,12 @@ cargo install ht-mcp
 
 **Option 1: One-liner**
 ```bash
-cargo install --git https://github.com/memextech/ht-mcp --branch feature/oss-setup ht-mcp && ht-mcp
+cargo install --git https://github.com/memextech/ht-mcp ht-mcp && ht-mcp
 ```
 
 **Option 2: Install script**
 ```bash
-curl -sSL https://raw.githubusercontent.com/memextech/ht-mcp/feature/oss-setup/install-and-run.sh | bash
+curl -sSL https://raw.githubusercontent.com/memextech/ht-mcp/main/install-and-run.sh | bash
 ```
 
 ### Manual Usage
