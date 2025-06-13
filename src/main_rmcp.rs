@@ -4,6 +4,18 @@ use serde_json::{json, Value};
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
+// Import rmcp components
+use rmcp::{
+    ServerHandler, 
+    CallToolRequestParam, CallToolResult, 
+    ListToolsResult, 
+    PaginatedRequestParamInner,
+    RequestContext, RoleServer, ErrorData,
+    model::{Content, TextContent},
+    transport::{StdioServerTransport, Transport},
+    Server
+};
+
 mod mcp;
 mod ht_integration;
 mod transport;
