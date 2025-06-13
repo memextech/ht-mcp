@@ -1,14 +1,14 @@
 use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
-#[cfg(not(ci))]
-use std::time::Duration;
+
 
 /// Integration test for MCP protocol compliance
 #[tokio::test]
 async fn test_mcp_protocol_basic_flow() {
+    #[allow(clippy::zombie_processes)]
     let mut child = Command::new("cargo")
-        .args(&["run", "--"])
+        .args(["run", "--"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -30,7 +30,7 @@ async fn test_mcp_protocol_basic_flow() {
     let read_response = |reader: &mut BufReader<std::process::ChildStdout>| -> Value {
         let mut line = String::new();
         reader.read_line(&mut line).unwrap();
-        serde_json::from_str(&line.trim()).unwrap()
+        serde_json::from_str(line.trim()).unwrap()
     };
 
     // Test 1: Initialize
@@ -96,8 +96,9 @@ async fn test_mcp_protocol_basic_flow() {
 
 #[tokio::test]
 async fn test_create_session_tool() {
+    #[allow(clippy::zombie_processes)]
     let mut child = Command::new("cargo")
-        .args(&["run", "--"])
+        .args(["run", "--"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -150,7 +151,7 @@ async fn test_create_session_tool() {
 
     let mut response_line = String::new();
     reader.read_line(&mut response_line).unwrap();
-    let response: Value = serde_json::from_str(&response_line.trim()).unwrap();
+    let response: Value = serde_json::from_str(response_line.trim()).unwrap();
 
     assert_eq!(response["id"], 2);
     assert!(response["result"]["content"][0]["text"]

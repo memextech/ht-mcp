@@ -15,8 +15,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 Testing ht-mcp server via MCP protocol...");
 
     // Start the ht-mcp server
+    #[allow(clippy::zombie_processes)]
     let mut child = Command::new("cargo")
-        .args(&["run", "--"])
+        .args(["run", "--"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -38,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let read_response = |reader: &mut BufReader<std::process::ChildStdout>| -> Value {
         let mut line = String::new();
         reader.read_line(&mut line).unwrap();
-        serde_json::from_str(&line.trim()).unwrap()
+        serde_json::from_str(line.trim()).unwrap()
     };
 
     println!("🤝 Initializing MCP connection...");

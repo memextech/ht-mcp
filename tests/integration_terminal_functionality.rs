@@ -15,7 +15,7 @@ struct McpClient {
 impl McpClient {
     async fn new() -> Self {
         let mut child = Command::new("cargo")
-            .args(&["run", "--"])
+            .args(["run", "--"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -76,7 +76,7 @@ impl McpClient {
     fn read_response(&mut self) -> Value {
         let mut line = String::new();
         self.reader.read_line(&mut line).unwrap();
-        serde_json::from_str(&line.trim()).unwrap()
+        serde_json::from_str(line.trim()).unwrap()
     }
 
     fn call_tool(&mut self, tool_name: &str, arguments: Value) -> Value {
