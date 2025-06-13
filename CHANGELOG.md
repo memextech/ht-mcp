@@ -28,4 +28,4 @@ Initial release of ht-mcp, a high-performance Rust MCP server for headless termi
 - Single binary deployment (4.7MB vs ~200MB Node.js)
 
 ### License
-MIT License - Copyright (c) 2025 Memex Technologies Inc.
+MIT License - Copyright (c) 2025 Atlas Futures Inc.
