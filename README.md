@@ -160,7 +160,7 @@ Compared to the original TypeScript implementation:
 
 MIT License
 
-Copyright (c) 2025 Memex Technologies Inc.
+Copyright (c) 2025 Atlas Futures Inc.
 
 See [LICENSE](LICENSE) for details.
 
