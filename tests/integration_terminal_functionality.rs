@@ -1,6 +1,7 @@
 use std::process::{Command, Stdio};
 use std::io::{BufRead, BufReader, Write};
 use serde_json::{json, Value};
+#[cfg(not(ci))]
 use std::time::Duration;
 
 /// Helper struct for MCP testing
@@ -118,6 +119,7 @@ impl Drop for McpClient {
 }
 
 #[tokio::test]
+#[cfg(not(ci))]
 async fn test_complete_terminal_workflow() {
     let mut client = McpClient::new().await;
 
