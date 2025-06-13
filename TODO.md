@@ -112,11 +112,12 @@
 ## 📦 Distribution & Publishing
 
 ### Task 16: Implement Crates.io Publishing
-- **Status**: Pending ⏳
+- **Status**: Blocked ⏸️ 
 - **Priority**: Medium  
-- **Dependencies**: License Update (✅), Crate Rename (✅), Performance Optimization
+- **Dependencies**: License Update (✅), Crate Rename (✅), Official MCP SDK Release
 - **Description**: Prepare and implement process for publishing to crates.io
-- **Notes**: Ready for crates.io publishing - just needs final review
+- **Notes**: **READY FOR PUBLISHING** - Blocked only by official MCP SDK not yet published to crates.io
+- **Current Install**: `cargo install --git https://github.com/memextech/ht-mcp` (works now)
 
 ### Task 17: Setup Homebrew Tap
 - **Status**: Pending ⏳
@@ -176,10 +177,21 @@
 6. **CLI Interface** (optional) - Configuration tool
 
 ## 🚀 Next Steps
-1. **Update taskmaster status** to reflect actual implementation progress
-2. **Security audit** of current implementation
-3. **Documentation sprint** for public release
-4. **Performance benchmarking**
-5. **Crates.io publishing preparation**
+1. **Security audit** of current implementation
+2. **Documentation sprint** for public release  
+3. **Performance benchmarking**
+4. **Wait for official MCP SDK release** to crates.io
+5. **Publish both ht-core and ht-mcp** once dependencies ready
+
+## 📦 Current Install Options
+**Git Install (Available Now):**
+```bash
+cargo install --git https://github.com/memextech/ht-mcp
+```
+
+**Crates.io Install (Future):**
+```bash
+cargo install ht-mcp  # Once MCP SDK releases
+```
 
 The project is much closer to production-ready than the task list suggests!
