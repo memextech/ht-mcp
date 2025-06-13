@@ -70,16 +70,24 @@
 ## Implementation Instructions
 
 ### Development Workflow
-1. Work off `feature/oss-setup` branch
-2. All CI must pass before merging
-3. Integration tests are disabled in CI but work locally
-4. Use `shell: bash` for cross-platform CI commands
+1. Work off `main` branch (CI configured for both `main` and `feature/oss-setup`)
+2. **ALWAYS run `cargo fmt --all` before committing** - CI will fail on formatting violations
+3. All CI must pass before merging
+4. Integration tests are disabled in CI but work locally
+5. Use `shell: bash` for cross-platform CI commands
+
+### Code Quality Requirements
+- **Formatting**: Run `cargo fmt --all` before every commit
+- **Linting**: `cargo clippy --all-targets` must pass
+- **Tests**: All tests must pass with `RUSTFLAGS="--cfg ci"`
+- **Build**: Both debug and release builds must succeed
 
 ### Diagnosing Issues
-1. **CI Failures**: Check for missing `RUSTFLAGS="--cfg ci"` 
-2. **Test Failures**: Verify integration tests are properly marked with `#[cfg(not(ci))]`
-3. **Platform Issues**: Focus on Unix platforms (Ubuntu/macOS)
-4. **Submodule Issues**: Ensure pointing to correct fork (memextech/ht.git)
+1. **Formatting Failures**: Run `cargo fmt --all` to fix code formatting
+2. **CI Failures**: Check for missing `RUSTFLAGS="--cfg ci"` 
+3. **Test Failures**: Verify integration tests are properly marked with `#[cfg(not(ci))]`
+4. **Platform Issues**: Focus on Unix platforms (Ubuntu/macOS)
+5. **Submodule Issues**: Ensure pointing to correct fork (memextech/ht.git)
 
 ### Key Patterns
 ```rust
@@ -105,14 +113,15 @@ mod tests {
 - Requires Unix-like environment (Linux/macOS)
 
 ## Recent Achievements
-- ✅ Fixed all CI pipeline issues
+- ✅ Fixed all CI pipeline issues (including formatting requirements)
 - ✅ Resolved cross-platform command compatibility  
 - ✅ Implemented conditional test compilation
 - ✅ Configured proper Rust linting
-- ✅ Established reliable CI matrix
+- ✅ Established reliable CI matrix with `main` branch support
 - ✅ Both CI workflows now passing consistently
 - ✅ **FIXED: Parameter name mismatch in MCP schemas** 
 - ✅ **FIXED: Response formatting to match TypeScript implementation**
+- ✅ **FIXED: Code formatting compliance for CI**
 
 ## Critical Bug Fixes (Latest)
 ### Parameter Name Mismatch Fix
@@ -142,10 +151,12 @@ mod tests {
 1. **Platform Focus**: ht-mcp is inherently Unix/Linux focused
 2. **CI Environment**: Can't run terminal-dependent integration tests
 3. **Rust Ecosystem**: Custom cfg flags require proper declaration
-4. **Strategy**: Focus on supported platforms rather than universal compatibility
+4. **Formatting Critical**: `cargo fmt --all` must be run before every commit - CI fails on formatting violations
+5. **Strategy**: Focus on supported platforms rather than universal compatibility
 
 ## Memory Notes
 - The project uses embedded ht library via git submodule
 - Integration tests require actual terminal processes, hence CI exclusion
 - CI configuration is critical - missing `RUSTFLAGS` breaks test runs
+- **CRITICAL**: Always run `cargo fmt --all` before committing - CI will fail otherwise
 - Project is production-ready with robust CI infrastructure
