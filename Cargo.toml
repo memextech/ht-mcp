@@ -47,9 +47,9 @@ ht = { path = "./ht-core" }
 tokio-test = "0.4"
 tempfile = "3.0"
 
-[[bin]]
-name = "test_ht_lib"
-path = "test_ht_lib.rs"
+# [[bin]]
+# name = "test_ht_lib"
+# path = "test_ht_lib.rs"
 
 [profile.release]
 strip = true
