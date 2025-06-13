@@ -320,6 +320,7 @@ impl Drop for NativeHtSession {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(ci))]
     use super::*;
 
     #[tokio::test]

@@ -195,6 +195,7 @@ impl Default for NativeSessionManager {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(ci))]
     use super::*;
 
     #[tokio::test]
