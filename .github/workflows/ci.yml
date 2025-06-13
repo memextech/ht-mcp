@@ -2,7 +2,7 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, feature/oss-setup ]
   pull_request:
     branches: [ main ]
 
@@ -18,19 +18,12 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
             rust: stable
           - os: ubuntu-latest  
-            target: x86_64-unknown-linux-gnu
             rust: beta
-          - os: macos-13  # Intel
-            target: x86_64-apple-darwin
-            rust: stable
-          - os: macos-14  # Apple Silicon
-            target: aarch64-apple-darwin
+          - os: macos-latest
             rust: stable
           - os: windows-latest
-            target: x86_64-pc-windows-msvc
             rust: stable
 
     runs-on: ${{ matrix.os }}
@@ -45,7 +38,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ matrix.rust }}
-          targets: ${{ matrix.target }}
           components: rustfmt, clippy
 
       - name: Cache dependencies
@@ -56,25 +48,25 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ matrix.rust }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-cargo-${{ matrix.rust }}-
-            ${{ runner.os }}-${{ matrix.target }}-cargo-
+            ${{ runner.os }}-cargo-${{ matrix.rust }}-
+            ${{ runner.os }}-cargo-
 
       - name: Check formatting
         run: cargo fmt --all -- --check
 
       - name: Lint with clippy
-        run: cargo clippy --all-targets --all-features --target ${{ matrix.target }} -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Build
-        run: cargo build --verbose --target ${{ matrix.target }}
+        run: cargo build --verbose
 
       - name: Run tests
-        run: cargo test --verbose --target ${{ matrix.target }}
+        run: cargo test --verbose
 
       - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release
 
   security:
     name: Security Audit
