@@ -4,7 +4,7 @@ use crate::mcp::types::*;
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::{error, info, warn};
+use tracing::info;
 
 /// Session manager that uses native HT subprocess with webserver support
 pub struct NativeSessionManager {

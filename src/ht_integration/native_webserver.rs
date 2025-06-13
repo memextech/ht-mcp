@@ -310,7 +310,7 @@ impl NativeHtManager {
 impl Drop for NativeHtSession {
     fn drop(&mut self) {
         // Ensure process is killed when session is dropped
-        if let Ok(mut child) = self.process.try_wait() {
+        if let Ok(child) = self.process.try_wait() {
             if child.is_none() {
                 let _ = self.process.start_kill();
             }
