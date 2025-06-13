@@ -100,9 +100,9 @@ ht-mcp --debug
 
 After installation, add to your MCP client configuration:
 
-#### Claude Desktop Configuration
+#### Standard Configuration
 
-Add to your `claude_desktop_config.json`:
+Add to your MCP client config:
 
 ```json
 {
