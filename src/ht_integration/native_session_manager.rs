@@ -71,6 +71,7 @@ impl NativeSessionManager {
         Ok(serde_json::json!({
             "success": true,
             "message": response,
+            "sessionId": args.session_id,
             "keys": args.keys
         }))
     }
