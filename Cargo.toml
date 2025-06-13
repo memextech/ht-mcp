@@ -1,3 +1,7 @@
+[workspace]
+members = [".", "ht-core"]
+resolver = "2"
+
 [package]
 name = "ht-mcp"
 version = "0.1.0"
@@ -63,12 +67,15 @@ tower-http = { version = "0.5", features = ["cors", "fs"] }
 hyper = "1.0"
 
 # Local HT library
-ht-core = { path = "./ht-core" }
+ht = { path = "./ht-core" }
 
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile = "3.0"
 
-[[bin]]
-name = "test_ht_lib"
-path = "test_ht_lib.rs"
+# [[bin]]
+# name = "test_ht_lib"
+# path = "test_ht_lib.rs"
+
+[profile.release]
+strip = true
