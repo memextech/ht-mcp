@@ -39,7 +39,7 @@ def test_ht_mcp_server():
     # Start the server process
     try:
         process = subprocess.Popen(
-            ["./target/debug/ht-mcp-rust"],
+            ["./target/debug/ht-mcp"],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
