@@ -2,7 +2,7 @@
 set -e
 
 echo "🚀 Installing ht-mcp from GitHub..."
-cargo install --git https://github.com/memextech/ht-mcp --branch feature/oss-setup ht-mcp
+cargo install --git https://github.com/memextech/ht-mcp ht-mcp
 
 echo "✅ Installation complete!"
 echo "📍 Binary location: $(which ht-mcp)"
