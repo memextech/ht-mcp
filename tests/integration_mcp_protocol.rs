@@ -2,7 +2,6 @@ use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
 
-
 /// Integration test for MCP protocol compliance
 #[tokio::test]
 async fn test_mcp_protocol_basic_flow() {
