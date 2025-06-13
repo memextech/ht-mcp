@@ -198,6 +198,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    #[cfg(not(ci))] // Skip in CI as it requires actual terminal processes
     async fn test_native_session_manager() {
         let manager = NativeSessionManager::new();
 
