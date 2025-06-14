@@ -18,7 +18,6 @@ mod mcp;
 mod transport;
 
 use crate::mcp::server::HtMcpServer;
-use crate::mcp::types::*;
 
 #[derive(Parser)]
 #[command(name = "ht-mcp-rust")]
@@ -165,38 +164,7 @@ async fn handle_request(server: &mut HtMcpServer, request: Value) -> Value {
                 "jsonrpc": "2.0",
                 "id": id,
                 "result": {
-                    "tools": [
-                        {
-                            "name": "ht_create_session",
-                            "description": "Create a new HT terminal session",
-                            "inputSchema": create_session_schema()
-                        },
-                        {
-                            "name": "ht_take_snapshot",
-                            "description": "Take a snapshot of a terminal session",
-                            "inputSchema": take_snapshot_schema()
-                        },
-                        {
-                            "name": "ht_send_keys",
-                            "description": "Send keys to a terminal session",
-                            "inputSchema": send_keys_schema()
-                        },
-                        {
-                            "name": "ht_execute_command",
-                            "description": "Execute a command in a terminal session",
-                            "inputSchema": execute_command_schema()
-                        },
-                        {
-                            "name": "ht_close_session",
-                            "description": "Close a terminal session",
-                            "inputSchema": close_session_schema()
-                        },
-                        {
-                            "name": "ht_list_sessions",
-                            "description": "List all active terminal sessions",
-                            "inputSchema": list_sessions_schema()
-                        }
-                    ]
+                    "tools": crate::mcp::tools::get_tool_definitions()
                 }
             })
         }
