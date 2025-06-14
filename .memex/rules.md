@@ -122,6 +122,13 @@ mod tests {
 - ✅ **FIXED: Parameter name mismatch in MCP schemas** 
 - ✅ **FIXED: Response formatting to match TypeScript implementation**
 - ✅ **FIXED: Code formatting compliance for CI**
+- ✅ **FIXED: Centralized tool definitions to eliminate duplicate schemas**
+
+### Tool Definition Centralization Fix
+- **Issue**: Tool definitions were duplicated between main.rs (hardcoded) and tools.rs (centralized)
+- **Root Cause**: main.rs was using hardcoded JSON arrays instead of calling get_tool_definitions()
+- **Solution**: Updated main.rs to use `crate::mcp::tools::get_tool_definitions()` for single source of truth
+- **Result**: All tool definitions now come from centralized location with consistent schemas
 
 ## Critical Bug Fixes (Latest)
 ### Parameter Name Mismatch Fix
