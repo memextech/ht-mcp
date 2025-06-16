@@ -14,6 +14,10 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   # Pre-release validation
   validate:
@@ -62,10 +66,13 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.extract_version.outputs.version }}
+      release_id: ${{ steps.create_release.outputs.id }}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Extract version
         id: extract_version
         run: |
@@ -77,33 +84,43 @@ jobs:
       
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.extract_version.outputs.version }}
-          release_name: HT-MCP ${{ steps.extract_version.outputs.version }}
-          body: |
-            ## What's Changed
+        run: |
+          VERSION="${{ steps.extract_version.outputs.version }}"
+          PRERELEASE=""
+          if [[ "$VERSION" == *"alpha"* ]] || [[ "$VERSION" == *"beta"* ]] || [[ "$VERSION" == *"rc"* ]]; then
+            PRERELEASE="--prerelease"
+          fi
+          
+          RELEASE_ID=$(gh release create "$VERSION" \
+            --title "HT-MCP $VERSION" \
+            --notes "## What's Changed
 
-            See [CHANGELOG.md](https://github.com/memextech/ht-mcp/blob/main/CHANGELOG.md) for detailed changes.
+          See [CHANGELOG.md](https://github.com/memextech/ht-mcp/blob/main/CHANGELOG.md) for detailed changes.
 
-            ## Installation
+          ## Installation
 
-            ### Cargo
-            ```bash
-            cargo install ht-mcp
-            ```
+          ### Homebrew
+          \`\`\`bash
+          brew tap memextech/tap
+          brew install ht-mcp
+          \`\`\`
 
-            ### Pre-built Binaries
-            Download the appropriate binary for your platform below:
+          ### Cargo
+          \`\`\`bash
+          cargo install ht-mcp
+          \`\`\`
 
-            - **macOS**: `ht-mcp-macos-x86_64` (Intel) or `ht-mcp-macos-aarch64` (Apple Silicon)
-            - **Linux**: `ht-mcp-linux-x86_64` (glibc) or `ht-mcp-linux-x86_64-musl` (static)
-            - **Windows**: `ht-mcp-windows-x86_64.exe`
+          ### Pre-built Binaries
+          Download the appropriate binary for your platform below:
 
-          draft: false
-          prerelease: ${{ contains(steps.extract_version.outputs.version, 'alpha') || contains(steps.extract_version.outputs.version, 'beta') || contains(steps.extract_version.outputs.version, 'rc') }}
+          - **macOS**: \`ht-mcp-x86_64-apple-darwin\` (Intel) or \`ht-mcp-aarch64-apple-darwin\` (Apple Silicon)
+          - **Linux**: \`ht-mcp-x86_64-unknown-linux-gnu\` (glibc) or \`ht-mcp-x86_64-unknown-linux-musl\` (static)
+          - **Windows**: \`ht-mcp-x86_64-pc-windows-msvc.exe\`" \
+            $PRERELEASE \
+            --generate-notes)
+          echo "id=$RELEASE_ID" >> $GITHUB_OUTPUT
 
   # Build and upload binaries
   build-release:
@@ -193,25 +210,21 @@ jobs:
           # Rename binary
           mv $BINARY_NAME $ASSET_NAME
 
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
+      - name: Upload Release Assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./target/${{ matrix.target }}/release/ht-mcp-${{ matrix.target }}${{ runner.os == 'Windows' && '.exe' || '' }}
-          asset_name: ht-mcp-${{ matrix.target }}${{ runner.os == 'Windows' && '.exe' || '' }}
-          asset_content_type: application/octet-stream
-
-      - name: Upload Checksum
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./target/${{ matrix.target }}/release/ht-mcp-${{ matrix.target }}${{ runner.os == 'Windows' && '.exe' || '' }}.sha256
-          asset_name: ht-mcp-${{ matrix.target }}${{ runner.os == 'Windows' && '.exe' || '' }}.sha256
-          asset_content_type: text/plain
+        run: |
+          cd target/${{ matrix.target }}/release
+          VERSION="${{ needs.create-release.outputs.version }}"
+          
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            ASSET_NAME="ht-mcp-${{ matrix.target }}.exe"
+          else
+            ASSET_NAME="ht-mcp-${{ matrix.target }}"
+          fi
+          
+          # Upload binary and checksum
+          gh release upload "$VERSION" "$ASSET_NAME" "$ASSET_NAME.sha256"
 
   # Publish to crates.io
   publish-crate:
