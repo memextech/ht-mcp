@@ -3,7 +3,7 @@
 [![Rust](https://img.shields.io/badge/rust-1.75+-orange.svg)](https://www.rust-lang.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-A high-performance Rust implementation of a Model Context Protocol (MCP) server for headless terminal automation.
+A high-performance Rust implementation of a Model Context Protocol (MCP) server for headless terminal [ht](https://github.com/andyk/ht).
 
 ## Features
 
