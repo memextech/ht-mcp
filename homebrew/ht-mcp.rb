@@ -21,7 +21,7 @@ class HtMcp < Formula
   end
 
   test do
-    # Test that the binary exists and shows version/help
-    assert_match version.to_s, shell_output("#{bin}/ht-mcp --version 2>&1")
+    # Test that the binary exists and shows help
+    assert_match "Pure Rust MCP server", shell_output("#{bin}/ht-mcp --help 2>&1")
   end
 end

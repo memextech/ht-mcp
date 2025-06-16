@@ -44,7 +44,7 @@
 ### Supported Platforms
 - **Ubuntu Latest (Stable Rust)** ✅
 - **macOS Latest (Stable Rust)** ✅
-- **Windows**: Not supported (ht-core is Unix-only)
+- **Windows**: Not supported (ht-core requires Unix-like terminal features)
 
 ### CI Validation Pipeline
 - Code formatting (`cargo fmt --all -- --check`)

@@ -113,11 +113,12 @@ jobs:
           \`\`\`
 
           ### Pre-built Binaries
-          Download the appropriate binary for your platform below:
+          Download the appropriate binary for your Unix-like platform below:
 
           - **macOS**: \`ht-mcp-x86_64-apple-darwin\` (Intel) or \`ht-mcp-aarch64-apple-darwin\` (Apple Silicon)
-          - **Linux**: \`ht-mcp-x86_64-unknown-linux-gnu\` (glibc) or \`ht-mcp-x86_64-unknown-linux-musl\` (static)
-          - **Windows**: \`ht-mcp-x86_64-pc-windows-msvc.exe\`" \
+          - **Linux**: \`ht-mcp-x86_64-unknown-linux-gnu\` (glibc), \`ht-mcp-x86_64-unknown-linux-musl\` (static), or \`ht-mcp-aarch64-unknown-linux-gnu\` (ARM64)
+
+          **Note**: Windows is not supported as ht-core requires Unix-like terminal features." \
             $PRERELEASE \
             --generate-notes)
           echo "id=$RELEASE_ID" >> $GITHUB_OUTPUT
@@ -144,9 +145,6 @@ jobs:
             cross: false
           - os: macos-14  # Apple Silicon
             target: aarch64-apple-darwin
-            cross: false
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
             cross: false
 
     runs-on: ${{ matrix.os }}
@@ -189,25 +187,14 @@ jobs:
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            BINARY_NAME="ht-mcp.exe"
-            ASSET_NAME="ht-mcp-${{ matrix.target }}.exe"
-          else
-            BINARY_NAME="ht-mcp"
-            ASSET_NAME="ht-mcp-${{ matrix.target }}"
-          fi
+          BINARY_NAME="ht-mcp"
+          ASSET_NAME="ht-mcp-${{ matrix.target }}"
           
-          # Strip binary (except on Windows)
-          if [[ "${{ runner.os }}" != "Windows" ]]; then
-            strip $BINARY_NAME || true
-          fi
+          # Strip binary to reduce size
+          strip $BINARY_NAME || true
           
           # Create checksum
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            powershell -Command "(Get-FileHash $BINARY_NAME -Algorithm SHA256).Hash.ToLower() + '  $ASSET_NAME'" > $ASSET_NAME.sha256
-          else
-            shasum -a 256 $BINARY_NAME | sed "s/$BINARY_NAME/$ASSET_NAME/" > $ASSET_NAME.sha256
-          fi
+          shasum -a 256 $BINARY_NAME | sed "s/$BINARY_NAME/$ASSET_NAME/" > $ASSET_NAME.sha256
           
           # Rename binary
           mv $BINARY_NAME $ASSET_NAME
@@ -219,12 +206,7 @@ jobs:
         run: |
           cd target/${{ matrix.target }}/release
           VERSION="${{ needs.create-release.outputs.version }}"
-          
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            ASSET_NAME="ht-mcp-${{ matrix.target }}.exe"
-          else
-            ASSET_NAME="ht-mcp-${{ matrix.target }}"
-          fi
+          ASSET_NAME="ht-mcp-${{ matrix.target }}"
           
           # Upload binary and checksum
           gh release upload "$VERSION" "$ASSET_NAME" "$ASSET_NAME.sha256"
