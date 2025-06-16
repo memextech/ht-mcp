@@ -16,19 +16,51 @@ A high-performance Rust implementation of a Model Context Protocol (MCP) server 
 
 ## Installation
 
-### From Git (Recommended)
+### 🍺 Homebrew (Recommended)
 
 ```bash
-cargo install --git https://github.com/memextech/ht-mcp ht-mcp
+brew tap memextech/tap
+brew install ht-mcp
 ```
 
-### From Source
+### 📦 Pre-built Binaries
+
+Download from [releases](https://github.com/memextech/ht-mcp/releases/latest):
+
+```bash
+# macOS Intel
+curl -L https://github.com/memextech/ht-mcp/releases/latest/download/ht-mcp-x86_64-apple-darwin -o ht-mcp
+
+# macOS Apple Silicon
+curl -L https://github.com/memextech/ht-mcp/releases/latest/download/ht-mcp-aarch64-apple-darwin -o ht-mcp
+
+# Linux
+curl -L https://github.com/memextech/ht-mcp/releases/latest/download/ht-mcp-x86_64-unknown-linux-gnu -o ht-mcp
+
+# Make executable and install
+chmod +x ht-mcp && sudo mv ht-mcp /usr/local/bin/
+```
+
+### 🦀 Cargo
+
+```bash
+# From crates.io (stable)
+cargo install ht-mcp
+
+# From git (latest)
+cargo install --git https://github.com/memextech/ht-mcp
+```
+
+### 🔧 Build from Source
 
 ```bash
 git clone https://github.com/memextech/ht-mcp.git
 cd ht-mcp
+git submodule update --init --recursive
 cargo install --path .
 ```
+
+See [docs/INSTALLATION.md](docs/INSTALLATION.md) for detailed installation options.
 
 ## MCP Tools
 

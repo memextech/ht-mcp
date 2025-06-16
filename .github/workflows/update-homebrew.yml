@@ -1,0 +1,162 @@
+name: Update Homebrew Formula
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update (e.g. v0.1.0)'
+        required: true
+        type: string
+
+env:
+  ORG: memextech
+  REPO: ht-mcp
+  TAP_REPO: homebrew-tap
+  FORMULA_NAME: ht-mcp
+
+jobs:
+  update-formula:
+    name: Update Homebrew Formula
+    runs-on: ubuntu-latest
+    if: github.repository == 'memextech/ht-mcp'
+    
+    steps:
+      - name: Extract version
+        id: extract_version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          fi
+          
+          # Also set version without 'v' prefix
+          VERSION="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.event.release.tag_name }}"
+          echo "version_no_v=${VERSION#v}" >> $GITHUB_OUTPUT
+
+      - name: Wait for release assets
+        if: github.event_name == 'release'
+        run: |
+          echo "⏳ Waiting for release assets to be uploaded..."
+          sleep 30
+
+      - name: Fetch checksums
+        id: checksums
+        run: |
+          VERSION="${{ steps.extract_version.outputs.version }}"
+          BASE_URL="https://github.com/$ORG/$REPO/releases/download/$VERSION"
+          
+          echo "🔍 Fetching checksums for $VERSION..."
+          
+          # Function to get SHA256
+          get_sha256() {
+            local asset_name="$1"
+            local sha_url="$BASE_URL/$asset_name.sha256"
+            local retries=3
+            
+            for i in $(seq 1 $retries); do
+              if SHA=$(curl -sL "$sha_url" 2>/dev/null | cut -d' ' -f1); then
+                if [[ -n "$SHA" && ${#SHA} -eq 64 ]]; then
+                  echo "$SHA"
+                  return 0
+                fi
+              fi
+              echo "⚠️  Attempt $i failed for $asset_name, retrying..." >&2
+              sleep 10
+            done
+            
+            echo "❌ Failed to fetch SHA256 for $asset_name after $retries attempts" >&2
+            return 1
+          }
+          
+          ARM64_SHA=$(get_sha256 "ht-mcp-aarch64-apple-darwin")
+          X86_64_SHA=$(get_sha256 "ht-mcp-x86_64-apple-darwin")
+          LINUX_SHA=$(get_sha256 "ht-mcp-x86_64-unknown-linux-gnu")
+          
+          echo "arm64_sha=$ARM64_SHA" >> $GITHUB_OUTPUT
+          echo "x86_64_sha=$X86_64_SHA" >> $GITHUB_OUTPUT
+          echo "linux_sha=$LINUX_SHA" >> $GITHUB_OUTPUT
+          
+          echo "✅ Checksums retrieved:"
+          echo "  ARM64: $ARM64_SHA"
+          echo "  x86_64: $X86_64_SHA"
+          echo "  Linux: $LINUX_SHA"
+
+      - name: Clone tap repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.ORG }}/${{ env.TAP_REPO }}
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Update formula
+        run: |
+          cd tap
+          
+          cat > "Formula/$FORMULA_NAME.rb" << 'EOF'
+          class HtMcp < Formula
+            desc "Headless Terminal MCP Server - Control terminal sessions via Model Context Protocol"
+            homepage "https://github.com/${{ env.ORG }}/${{ env.REPO }}"
+            version "${{ steps.extract_version.outputs.version_no_v }}"
+          
+            if OS.mac?
+              if Hardware::CPU.arm?
+                url "https://github.com/${{ env.ORG }}/${{ env.REPO }}/releases/download/${{ steps.extract_version.outputs.version }}/ht-mcp-aarch64-apple-darwin"
+                sha256 "${{ steps.checksums.outputs.arm64_sha }}"
+              else
+                url "https://github.com/${{ env.ORG }}/${{ env.REPO }}/releases/download/${{ steps.extract_version.outputs.version }}/ht-mcp-x86_64-apple-darwin"
+                sha256 "${{ steps.checksums.outputs.x86_64_sha }}"
+              end
+            else
+              url "https://github.com/${{ env.ORG }}/${{ env.REPO }}/releases/download/${{ steps.extract_version.outputs.version }}/ht-mcp-x86_64-unknown-linux-gnu"
+              sha256 "${{ steps.checksums.outputs.linux_sha }}"
+            end
+          
+            def install
+              bin.install Dir["*"].first => "ht-mcp"
+            end
+          
+            test do
+              # Test that the binary exists and shows version/help
+              output = shell_output("#{bin}/ht-mcp --version 2>&1", 1)
+              assert_match "ht-mcp", output
+            end
+          end
+          EOF
+
+      - name: Commit and push changes
+        run: |
+          cd tap
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add "Formula/$FORMULA_NAME.rb"
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
+          git commit -m "Update $FORMULA_NAME to ${{ steps.extract_version.outputs.version }}
+
+          - ARM64 (Apple Silicon): ${{ steps.checksums.outputs.arm64_sha }}
+          - x86_64 (Intel Mac): ${{ steps.checksums.outputs.x86_64_sha }}
+          - Linux x86_64: ${{ steps.checksums.outputs.linux_sha }}
+
+          🤖 Generated with [Memex](https://memex.tech)
+          Co-Authored-By: Memex <noreply@memex.tech>"
+          
+          git push origin main
+
+      - name: Summary
+        run: |
+          echo "✅ Homebrew formula updated successfully!"
+          echo ""
+          echo "🎯 Users can now install with:"
+          echo "   brew tap $ORG/tap"
+          echo "   brew install $FORMULA_NAME"
+          echo ""
+          echo "📍 Formula: https://github.com/$ORG/$TAP_REPO/blob/main/Formula/$FORMULA_NAME.rb"
