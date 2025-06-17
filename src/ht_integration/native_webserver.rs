@@ -72,7 +72,15 @@ impl NativeHtManager {
         info!("Starting HT with args: {:?}", ht_args);
 
         // Start HT process
-        let mut child = Command::new("ht")
+        // Find the HT binary in the PATH or use a platform-specific approach
+        let ht_binary = if cfg!(windows) {
+            // On Windows, we might need to handle .exe extension
+            "ht.exe"
+        } else {
+            "ht"
+        };
+        
+        let mut child = Command::new(ht_binary)
             .args(&ht_args)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -296,7 +304,14 @@ impl NativeHtManager {
     async fn find_available_port(&self) -> Result<u16> {
         use tokio::net::TcpListener;
 
-        for port in 3000..4000 {
+        // Increase the port range for Windows which may have more system services
+        let (start_port, end_port) = if cfg!(windows) {
+            (5000, 6000) // Higher range to avoid conflicts with Windows system services
+        } else {
+            (3000, 4000)
+        };
+
+        for port in start_port..end_port {
             if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{}", port)).await {
                 drop(listener);
                 return Ok(port);
@@ -312,7 +327,16 @@ impl Drop for NativeHtSession {
         // Ensure process is killed when session is dropped
         if let Ok(child) = self.process.try_wait() {
             if child.is_none() {
-                let _ = self.process.start_kill();
+                // Windows may have different process termination behavior
+                if cfg!(windows) {
+                    // For Windows, ensure process and any child processes are terminated
+                    let _ = self.process.start_kill();
+                    
+                    // On Windows, we might need additional cleanup for child processes
+                    // This would be a future enhancement if needed
+                } else {
+                    let _ = self.process.start_kill();
+                }
             }
         }
     }
@@ -328,9 +352,16 @@ mod tests {
     async fn test_native_ht_session() {
         let mut manager = NativeHtManager::new();
 
+        // Choose shell based on platform
+        let shell = if cfg!(windows) {
+            "powershell.exe"
+        } else {
+            "bash"
+        };
+
         // Create session without webserver first (faster)
         let session_id = manager
-            .create_session(vec!["bash".to_string()], false)
+            .create_session(vec![shell.to_string()], false)
             .await
             .unwrap();
 

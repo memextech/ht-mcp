@@ -1,3 +1,4 @@
 [submodule "ht-core"]
 	path = ht-core
 	url = https://github.com/memextech/ht.git
+	branch = windows-support

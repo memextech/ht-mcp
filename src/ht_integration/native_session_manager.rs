@@ -19,7 +19,14 @@ impl NativeSessionManager {
     }
 
     pub async fn create_session(&self, args: CreateSessionArgs) -> Result<serde_json::Value> {
-        let command = args.command.unwrap_or_else(|| vec!["bash".to_string()]);
+        // Default command is platform-specific
+        let command = args.command.unwrap_or_else(|| {
+            if cfg!(windows) {
+                vec!["powershell.exe".to_string()]
+            } else {
+                vec!["bash".to_string()]
+            }
+        });
         let enable_web_server = args.enable_web_server.unwrap_or(false);
 
         let mut manager = self.ht_manager.lock().await;
@@ -194,10 +201,17 @@ mod tests {
     async fn test_native_session_manager() {
         let manager = NativeSessionManager::new();
 
+        // Choose shell based on platform
+        let shell = if cfg!(windows) {
+            "powershell.exe"
+        } else {
+            "bash"
+        };
+
         // Create a session
         let create_result = manager
             .create_session(CreateSessionArgs {
-                command: Some(vec!["bash".to_string()]),
+                command: Some(vec![shell.to_string()]),
                 enable_web_server: Some(false),
             })
             .await
@@ -218,11 +232,17 @@ mod tests {
             .unwrap()
             .contains("session"));
 
-        // Test command execution
+        // Test command execution - use platform-specific echo command
+        let echo_command = if cfg!(windows) {
+            "Write-Host test"
+        } else {
+            "echo test"
+        };
+        
         let exec_result = manager
             .execute_command(ExecuteCommandArgs {
                 session_id: session_id.clone(),
-                command: "echo test".to_string(),
+                command: echo_command.to_string(),
             })
             .await
             .unwrap();

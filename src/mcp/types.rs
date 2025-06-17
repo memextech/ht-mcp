@@ -54,13 +54,19 @@ pub struct CloseSessionArgs {
 
 // Schema generation functions
 pub fn create_session_schema() -> Value {
+    let default_command = if cfg!(windows) {
+        "[\"powershell.exe\"]"
+    } else {
+        "[\"bash\"]"
+    };
+    
     json!({
         "type": "object",
         "properties": {
             "command": {
                 "type": "array",
                 "items": {"type": "string"},
-                "description": "Command to run in the terminal (default: [\"bash\"])"
+                "description": format!("Command to run in the terminal (default: {})", default_command)
             },
             "enableWebServer": {
                 "type": "boolean",
