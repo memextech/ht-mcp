@@ -37,6 +37,9 @@ curl -L https://github.com/memextech/ht-mcp/releases/latest/download/ht-mcp-aarc
 # Linux
 curl -L https://github.com/memextech/ht-mcp/releases/latest/download/ht-mcp-x86_64-unknown-linux-gnu -o ht-mcp
 
+# Windows (PowerShell)
+curl.exe -L https://github.com/memextech/ht-mcp/releases/latest/download/ht-mcp-x86_64-pc-windows-msvc -o ht-mcp.exe
+
 # Make executable and install
 chmod +x ht-mcp && sudo mv ht-mcp /usr/local/bin/
 ```
@@ -148,7 +151,7 @@ bash-3.2$
 ## Requirements
 
 - **Rust**: 1.75+ (install via [rustup](https://rustup.rs/))
-- **Unix-like OS**: Linux, macOS (Windows not supported)
+- **Supported OS**: Linux, macOS, Windows (experimental)
 - **Git**: For submodule handling during build
 
 ## Development
