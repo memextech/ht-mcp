@@ -21,6 +21,8 @@ jobs:
             rust: stable
           - os: macos-latest
             rust: stable
+          - os: windows-latest
+            rust: stable
 
     runs-on: ${{ matrix.os }}
     
@@ -36,9 +38,10 @@ jobs:
           toolchain: ${{ matrix.rust }}
           components: rustfmt, clippy
 
-      - name: Verify submodule
+      - name: Verify submodule branch
         run: |
-          echo "Checking submodules..."
+          echo "Checking submodule branch..."
+          git config -f .gitmodules --get submodule.ht-core.branch
           git submodule status
         shell: bash
 
@@ -73,7 +76,7 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Lint with clippy
-        run: cargo clippy --package ht-mcp --all-targets
+        run: cargo clippy --package ht-mcp --all-targets -- -D warnings
 
       - name: Build
         run: cargo build --verbose
