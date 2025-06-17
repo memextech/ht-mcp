@@ -577,7 +577,7 @@ mod tests {
         // Test the specific emacs quit sequence
         let c_x = parse_key_to_input_seq("C-x");
         let c_c = parse_key_to_input_seq("C-c");
-        
+
         assert_eq!(c_x, InputSeq::Standard("\x18".to_string()));
         assert_eq!(c_c, InputSeq::Standard("\x03".to_string()));
     }
