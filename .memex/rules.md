@@ -32,9 +32,10 @@
 
 ### Key Files
 - `src/main.rs` - Main MCP server implementation
-- `src/ht_integration/` - Native integration modules
-  - `native_session_manager.rs` - Session management
-  - `native_webserver.rs` - Web server functionality
+- `src/ht_integration/` - Direct library integration modules
+  - `session_manager.rs` - Session management with ht-core library
+  - `command_bridge.rs` - Command bridging
+  - `event_handler.rs` - Event handling
 - `.github/workflows/ci.yml` - Main CI pipeline
 - `.github/workflows/test-ci.yml` - Quick test pipeline
 - `Cargo.toml` - Dependencies and lint configuration
@@ -123,6 +124,16 @@ mod tests {
 - ✅ **FIXED: Response formatting to match TypeScript implementation**
 - ✅ **FIXED: Code formatting compliance for CI**
 - ✅ **FIXED: Centralized tool definitions to eliminate duplicate schemas**
+- ✅ **FIXED: CTRL+KEY sequence parsing bug in library integration**
+- ✅ **REMOVED: Dead code from native webserver approach**
+- ✅ **ADDED: Comprehensive test coverage for key parsing**
+
+### CTRL+KEY Sequence Bug Fix
+- **Issue**: `C-c`, `C-x` format keys were sent as literal text instead of control characters
+- **Root Cause**: Missing pattern matching for `C-key` format in `parse_key_to_input_seq()`
+- **Solution**: Added support for both `C-key` and `^key` formats with identical behavior
+- **Testing**: Added 9 comprehensive test cases covering all key parsing scenarios
+- **Result**: Both `C-x C-c` and `^X^C` now work to quit emacs properly
 
 ### Tool Definition Centralization Fix
 - **Issue**: Tool definitions were duplicated between main.rs (hardcoded) and tools.rs (centralized)
