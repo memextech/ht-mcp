@@ -1,9 +1,8 @@
 use crate::error::{HtMcpError, Result};
 use crate::mcp::types::*;
-use ht_core::{api::http, cli::Size, pty, session::Session};
+use ht_core::{api::http, pty, pty::Winsize, session::Session};
 use std::collections::HashMap;
 use std::net::{SocketAddr, TcpListener};
-use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
@@ -52,10 +51,23 @@ impl SessionManager {
         let (command_tx, mut command_rx) = mpsc::channel::<SessionCommand>(1024);
         let (clients_tx, mut clients_rx) = mpsc::channel(1);
 
-        // Set up the terminal size
-        let size = Size::from_str("120x40").unwrap_or_else(|_| Size::from_str("80x24").unwrap());
-        let cols = size.cols();
-        let rows = size.rows();
+        // Set up the terminal size with platform-specific fields
+        #[cfg(unix)]
+        let size = Winsize {
+            ws_col: 120,
+            ws_row: 40,
+            ws_xpixel: 0,
+            ws_ypixel: 0,
+        };
+        
+        #[cfg(windows)]
+        let size = Winsize {
+            ws_col: 120,
+            ws_row: 40,
+        };
+        
+        let cols = size.ws_col as usize;
+        let rows = size.ws_row as usize;
 
         // Start HTTP server if enabled - we need to clone clients_tx for the HTTP server
         let (web_server_url, _clients_tx_for_session) = if enable_web_server {
@@ -88,7 +100,7 @@ impl SessionManager {
         // Start PTY process
         let command_str = command.join(" ");
         let _pty_handle = tokio::spawn(async move {
-            match pty::spawn(command_str, &size, input_rx, output_tx) {
+            match pty::spawn(command_str, size, input_rx, output_tx) {
                 Ok(future) => {
                     if let Err(e) = future.await {
                         error!("PTY execution error: {}", e);
