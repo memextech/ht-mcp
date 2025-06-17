@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.1.1] - 2025-06-17
+
+### Added
+- Windows platform support
+- Cross-platform terminal integration
+- Platform-specific helpers for command execution
+- Improved CI with Windows testing
+
+### Changed
+- Updated ht-core submodule to windows-support branch
+- Refactored terminal size handling for cross-platform compatibility
+- Enhanced port selection logic for different platforms
+- Improved platform-specific shell detection
+
+### Fixed
+- Code formatting for CI compliance
+- Platform-specific path handling
+- Terminal window size structure differences between platforms
+
 ## [0.1.0] - 2025-06-13
 
 Initial release of ht-mcp, a high-performance Rust MCP server for headless terminal automation.
