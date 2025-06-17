@@ -201,17 +201,13 @@ mod tests {
     async fn test_native_session_manager() {
         let manager = NativeSessionManager::new();
 
-        // Choose shell based on platform
-        let shell = if cfg!(windows) {
-            "powershell.exe"
-        } else {
-            "bash"
-        };
-
+        // Use platform-agnostic default shell
+        // NativeSessionManager.create_session already handles platform detection
+        
         // Create a session
         let create_result = manager
             .create_session(CreateSessionArgs {
-                command: Some(vec![shell.to_string()]),
+                command: None, // Use default shell for platform
                 enable_web_server: Some(false),
             })
             .await
@@ -232,17 +228,13 @@ mod tests {
             .unwrap()
             .contains("session"));
 
-        // Test command execution - use platform-specific echo command
-        let echo_command = if cfg!(windows) {
-            "Write-Host test"
-        } else {
-            "echo test"
-        };
-        
+        // Test command execution with a simple command that works cross-platform
+        // We'll just use a simple directory listing command since it works everywhere
         let exec_result = manager
             .execute_command(ExecuteCommandArgs {
                 session_id: session_id.clone(),
-                command: echo_command.to_string(),
+                // Use a command that works on all platforms without explicit conditionals
+                command: "pwd || cd".to_string(), // pwd on Unix, cd on Windows
             })
             .await
             .unwrap();

@@ -72,13 +72,8 @@ impl NativeHtManager {
         info!("Starting HT with args: {:?}", ht_args);
 
         // Start HT process
-        // Find the HT binary in the PATH or use a platform-specific approach
-        let ht_binary = if cfg!(windows) {
-            // On Windows, we might need to handle .exe extension
-            "ht.exe"
-        } else {
-            "ht"
-        };
+        // Use a function to get the platform-specific HT binary name
+        let ht_binary = get_ht_binary_name();
         
         let mut child = Command::new(ht_binary)
             .args(&ht_args)
@@ -327,18 +322,28 @@ impl Drop for NativeHtSession {
         // Ensure process is killed when session is dropped
         if let Ok(child) = self.process.try_wait() {
             if child.is_none() {
-                // Windows may have different process termination behavior
-                if cfg!(windows) {
-                    // For Windows, ensure process and any child processes are terminated
-                    let _ = self.process.start_kill();
-                    
-                    // On Windows, we might need additional cleanup for child processes
-                    // This would be a future enhancement if needed
-                } else {
-                    let _ = self.process.start_kill();
-                }
+                let _ = self.process.start_kill();
             }
         }
+    }
+}
+
+/// Returns the default shell for the current platform
+/// This encapsulates platform-specific logic in a single function
+fn get_default_shell() -> String {
+    if cfg!(windows) {
+        "powershell.exe".to_string()
+    } else {
+        "bash".to_string()
+    }
+}
+
+/// Returns the appropriate HT binary name for the current platform
+fn get_ht_binary_name() -> String {
+    if cfg!(windows) {
+        "ht.exe".to_string()
+    } else {
+        "ht".to_string()
     }
 }
 
@@ -352,12 +357,8 @@ mod tests {
     async fn test_native_ht_session() {
         let mut manager = NativeHtManager::new();
 
-        // Choose shell based on platform
-        let shell = if cfg!(windows) {
-            "powershell.exe"
-        } else {
-            "bash"
-        };
+        // Get default shell from a function that handles platform differences
+        let shell = get_default_shell();
 
         // Create session without webserver first (faster)
         let session_id = manager

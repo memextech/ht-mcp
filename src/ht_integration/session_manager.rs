@@ -51,21 +51,9 @@ impl SessionManager {
         let (command_tx, mut command_rx) = mpsc::channel::<SessionCommand>(1024);
         let (clients_tx, mut clients_rx) = mpsc::channel(1);
 
-        // Set up the terminal size with platform-specific fields
-        #[cfg(unix)]
-        let size = Winsize {
-            ws_col: 120,
-            ws_row: 40,
-            ws_xpixel: 0,
-            ws_ypixel: 0,
-        };
-        
-        #[cfg(windows)]
-        let size = Winsize {
-            ws_col: 120,
-            ws_row: 40,
-        };
-        
+        // Create a platform-agnostic terminal size
+        // Using a helper function to maintain a clean interface
+        let size = create_winsize(120, 40);
         let cols = size.ws_col as usize;
         let rows = size.ws_row as usize;
 
@@ -387,5 +375,27 @@ fn parse_key_to_input_seq(key: &str) -> ht_core::command::InputSeq {
         "F12" => InputSeq::Standard("\x1b[24~".to_string()),
         // Everything else is treated as literal text
         _ => InputSeq::Standard(key.to_string()),
+    }
+}
+
+/// Creates a Winsize struct with platform-appropriate fields
+/// This function abstracts away platform differences in the Winsize struct
+fn create_winsize(cols: u16, rows: u16) -> Winsize {
+    #[cfg(unix)]
+    {
+        Winsize {
+            ws_col: cols,
+            ws_row: rows,
+            ws_xpixel: 0,
+            ws_ypixel: 0,
+        }
+    }
+    
+    #[cfg(windows)]
+    {
+        Winsize {
+            ws_col: cols,
+            ws_row: rows,
+        }
     }
 }
