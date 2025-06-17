@@ -1,9 +1,8 @@
 use crate::error::{HtMcpError, Result};
 use crate::mcp::types::*;
-use ht_core::{api::http, cli::Size, pty, session::Session};
+use ht_core::{api::http, pty, pty::Winsize, session::Session};
 use std::collections::HashMap;
 use std::net::{SocketAddr, TcpListener};
-use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
@@ -52,10 +51,11 @@ impl SessionManager {
         let (command_tx, mut command_rx) = mpsc::channel::<SessionCommand>(1024);
         let (clients_tx, mut clients_rx) = mpsc::channel(1);
 
-        // Set up the terminal size
-        let size = Size::from_str("120x40").unwrap_or_else(|_| Size::from_str("80x24").unwrap());
-        let cols = size.cols();
-        let rows = size.rows();
+        // Create a platform-agnostic terminal size
+        // Using a helper function to maintain a clean interface
+        let size = create_winsize(120, 40);
+        let cols = size.ws_col as usize;
+        let rows = size.ws_row as usize;
 
         // Start HTTP server if enabled - we need to clone clients_tx for the HTTP server
         let (web_server_url, _clients_tx_for_session) = if enable_web_server {
@@ -88,7 +88,7 @@ impl SessionManager {
         // Start PTY process
         let command_str = command.join(" ");
         let _pty_handle = tokio::spawn(async move {
-            match pty::spawn(command_str, &size, input_rx, output_tx) {
+            match pty::spawn(command_str, size, input_rx, output_tx) {
                 Ok(future) => {
                     if let Err(e) = future.await {
                         error!("PTY execution error: {}", e);
@@ -344,6 +344,7 @@ fn parse_key_to_input_seq(key: &str) -> ht_core::command::InputSeq {
         "Enter" => InputSeq::Standard("\n".to_string()),
         "Tab" => InputSeq::Standard("\t".to_string()),
         "Escape" => InputSeq::Standard("\x1b".to_string()),
+        "Space" => InputSeq::Standard(" ".to_string()),
         "Backspace" => InputSeq::Standard("\x7f".to_string()),
         "Delete" => InputSeq::Standard("\x1b[3~".to_string()),
         "Up" => InputSeq::Cursor("\x1b[A".to_string(), "\x1bOA".to_string()),
@@ -373,7 +374,227 @@ fn parse_key_to_input_seq(key: &str) -> ht_core::command::InputSeq {
         "F10" => InputSeq::Standard("\x1b[21~".to_string()),
         "F11" => InputSeq::Standard("\x1b[23~".to_string()),
         "F12" => InputSeq::Standard("\x1b[24~".to_string()),
+        // C-key control sequences (e.g., C-c, C-x, C-d)
+        s if s.starts_with("C-") && s.len() == 3 => {
+            let ch = s.chars().nth(2).unwrap().to_ascii_lowercase();
+            if ch.is_ascii_lowercase() {
+                let ctrl_code = ch as u8 - b'a' + 1;
+                InputSeq::Standard(format!("{}", ctrl_code as char))
+            } else {
+                InputSeq::Standard(key.to_string())
+            }
+        }
         // Everything else is treated as literal text
         _ => InputSeq::Standard(key.to_string()),
+    }
+}
+
+/// Creates a Winsize struct with platform-appropriate fields
+/// This function abstracts away platform differences in the Winsize struct
+fn create_winsize(cols: u16, rows: u16) -> Winsize {
+    #[cfg(unix)]
+    {
+        Winsize {
+            ws_col: cols,
+            ws_row: rows,
+            ws_xpixel: 0,
+            ws_ypixel: 0,
+        }
+    }
+
+    #[cfg(windows)]
+    {
+        Winsize {
+            ws_col: cols,
+            ws_row: rows,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ht_core::command::InputSeq;
+
+    #[test]
+    fn test_parse_key_to_input_seq_basic_keys() {
+        // Test basic keys
+        assert_eq!(
+            parse_key_to_input_seq("Enter"),
+            InputSeq::Standard("\n".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("Tab"),
+            InputSeq::Standard("\t".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("Escape"),
+            InputSeq::Standard("\x1b".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("Space"),
+            InputSeq::Standard(" ".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_key_to_input_seq_caret_control_keys() {
+        // Test caret format control keys (^C, ^X, etc.)
+        assert_eq!(
+            parse_key_to_input_seq("^C"),
+            InputSeq::Standard("\x03".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("^c"),
+            InputSeq::Standard("\x03".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("^X"),
+            InputSeq::Standard("\x18".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("^x"),
+            InputSeq::Standard("\x18".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("^D"),
+            InputSeq::Standard("\x04".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("^Z"),
+            InputSeq::Standard("\x1a".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_key_to_input_seq_dash_control_keys() {
+        // Test dash format control keys (C-c, C-x, etc.)
+        assert_eq!(
+            parse_key_to_input_seq("C-c"),
+            InputSeq::Standard("\x03".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("C-C"),
+            InputSeq::Standard("\x03".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("C-x"),
+            InputSeq::Standard("\x18".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("C-X"),
+            InputSeq::Standard("\x18".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("C-d"),
+            InputSeq::Standard("\x04".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("C-z"),
+            InputSeq::Standard("\x1a".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_key_to_input_seq_function_keys() {
+        // Test function keys
+        assert_eq!(
+            parse_key_to_input_seq("F1"),
+            InputSeq::Standard("\x1bOP".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("F5"),
+            InputSeq::Standard("\x1b[15~".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("F12"),
+            InputSeq::Standard("\x1b[24~".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_key_to_input_seq_arrow_keys() {
+        // Test arrow keys (cursor keys)
+        if let InputSeq::Cursor(seq1, seq2) = parse_key_to_input_seq("Up") {
+            assert_eq!(seq1, "\x1b[A");
+            assert_eq!(seq2, "\x1bOA");
+        } else {
+            panic!("Expected Cursor InputSeq for Up key");
+        }
+
+        if let InputSeq::Cursor(seq1, seq2) = parse_key_to_input_seq("Left") {
+            assert_eq!(seq1, "\x1b[D");
+            assert_eq!(seq2, "\x1bOD");
+        } else {
+            panic!("Expected Cursor InputSeq for Left key");
+        }
+    }
+
+    #[test]
+    fn test_parse_key_to_input_seq_literal_text() {
+        // Test literal text
+        assert_eq!(
+            parse_key_to_input_seq("hello"),
+            InputSeq::Standard("hello".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("world123"),
+            InputSeq::Standard("world123".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("C-"),
+            InputSeq::Standard("C-".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("C-123"),
+            InputSeq::Standard("C-123".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_key_to_input_seq_edge_cases() {
+        // Test edge cases
+        assert_eq!(
+            parse_key_to_input_seq("^"),
+            InputSeq::Standard("^".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("^123"),
+            InputSeq::Standard("^123".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq("C-"),
+            InputSeq::Standard("C-".to_string())
+        );
+        assert_eq!(
+            parse_key_to_input_seq(""),
+            InputSeq::Standard("".to_string())
+        );
+    }
+
+    #[test]
+    fn test_emacs_quit_sequence() {
+        // Test the specific emacs quit sequence
+        let c_x = parse_key_to_input_seq("C-x");
+        let c_c = parse_key_to_input_seq("C-c");
+
+        assert_eq!(c_x, InputSeq::Standard("\x18".to_string()));
+        assert_eq!(c_c, InputSeq::Standard("\x03".to_string()));
+    }
+
+    #[test]
+    fn test_control_key_consistency() {
+        // Test that both formats produce the same result
+        let caret_c = parse_key_to_input_seq("^c");
+        let dash_c = parse_key_to_input_seq("C-c");
+        assert_eq!(caret_c, dash_c);
+
+        let caret_x = parse_key_to_input_seq("^x");
+        let dash_x = parse_key_to_input_seq("C-x");
+        assert_eq!(caret_x, dash_x);
+
+        let caret_d = parse_key_to_input_seq("^d");
+        let dash_d = parse_key_to_input_seq("C-d");
+        assert_eq!(caret_d, dash_d);
     }
 }

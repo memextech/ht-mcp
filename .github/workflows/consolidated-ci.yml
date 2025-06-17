@@ -2,7 +2,7 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [ main, feature/oss-setup ]
+    branches: [ main, feature/oss-setup, feature/windows-support ]
   pull_request:
     branches: [ main ]
 
@@ -88,6 +88,45 @@ jobs:
 
       - name: Build release binary
         run: cargo build --release
+
+  quick-test:
+    name: Quick Build Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ubuntu-test-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Build
+        run: cargo build --verbose
+
+      - name: Run tests
+        run: cargo test --verbose
+        env:
+          RUSTFLAGS: "--cfg ci"
+
+      - name: Run clippy
+        run: cargo clippy --package ht-mcp --all-targets -- -D warnings
 
   # TODO: Re-enable after main build is working
   # security:
