@@ -113,12 +113,13 @@ jobs:
           \`\`\`
 
           ### Pre-built Binaries
-          Download the appropriate binary for your Unix-like platform below:
+          Download the appropriate binary for your platform below:
 
           - **macOS**: \`ht-mcp-x86_64-apple-darwin\` (Intel) or \`ht-mcp-aarch64-apple-darwin\` (Apple Silicon)
           - **Linux**: \`ht-mcp-x86_64-unknown-linux-gnu\` (glibc), \`ht-mcp-x86_64-unknown-linux-musl\` (static), or \`ht-mcp-aarch64-unknown-linux-gnu\` (ARM64)
+          - **Windows**: \`ht-mcp-x86_64-pc-windows-msvc\` (64-bit)
 
-          **Note**: Windows is not supported as ht-core requires Unix-like terminal features." \
+          This release includes experimental Windows support." \
             $PRERELEASE \
             --generate-notes)
           echo "id=$RELEASE_ID" >> $GITHUB_OUTPUT
@@ -145,6 +146,9 @@ jobs:
             cross: false
           - os: macos-14  # Apple Silicon
             target: aarch64-apple-darwin
+            cross: false
+          - os: windows-latest  # Windows
+            target: x86_64-pc-windows-msvc
             cross: false
 
     runs-on: ${{ matrix.os }}
