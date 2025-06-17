@@ -44,7 +44,7 @@
 ### Supported Platforms
 - **Ubuntu Latest (Stable Rust)** ✅
 - **macOS Latest (Stable Rust)** ✅
-- **Windows**: Not supported (ht-core requires Unix-like terminal features)
+- **Windows Latest (Stable Rust)** ✅ (Experimental)
 
 ### CI Validation Pipeline
 - Code formatting (`cargo fmt --all -- --check`)
@@ -166,4 +166,7 @@ mod tests {
 - Integration tests require actual terminal processes, hence CI exclusion
 - CI configuration is critical - missing `RUSTFLAGS` breaks test runs
 - **CRITICAL**: Always run `cargo fmt --all` before committing - CI will fail otherwise
+- Windows support is experimental - requires windows-support branch of ht-core
+- Platform-specific code should be encapsulated in helper functions
+- Use conditional compilation with cfg(windows) and cfg(unix) for platform differences - CI will fail otherwise
 - Project is production-ready with robust CI infrastructure
