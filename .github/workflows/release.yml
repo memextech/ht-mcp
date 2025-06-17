@@ -187,7 +187,8 @@ jobs:
             cargo build --release --locked --target ${{ matrix.target }}
           fi
 
-      - name: Prepare binary for upload  
+      - name: Prepare binary for upload (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
@@ -203,7 +204,24 @@ jobs:
           # Rename binary
           mv $BINARY_NAME $ASSET_NAME
 
-      - name: Upload Release Assets
+      - name: Prepare binary for upload (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          cd target/${{ matrix.target }}/release
+          $BINARY_NAME = "ht-mcp.exe"
+          $ASSET_NAME = "ht-mcp-${{ matrix.target }}.exe"
+          
+          # Create checksum
+          $hash = Get-FileHash -Algorithm SHA256 $BINARY_NAME
+          $hashString = $hash.Hash.ToLower() + "  " + $ASSET_NAME
+          $hashString | Out-File -Encoding ASCII "$ASSET_NAME.sha256"
+          
+          # Rename binary
+          Rename-Item $BINARY_NAME $ASSET_NAME
+
+      - name: Upload Release Assets (Unix)
+        if: runner.os != 'Windows'
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -214,6 +232,19 @@ jobs:
           
           # Upload binary and checksum
           gh release upload "$VERSION" "$ASSET_NAME" "$ASSET_NAME.sha256"
+
+      - name: Upload Release Assets (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd target/${{ matrix.target }}/release
+          $VERSION = "${{ needs.create-release.outputs.version }}"
+          $ASSET_NAME = "ht-mcp-${{ matrix.target }}.exe"
+          
+          # Upload binary and checksum
+          gh release upload $VERSION $ASSET_NAME "$ASSET_NAME.sha256"
 
   # Publish to crates.io - DISABLED until ht-core publishes to crates.io
   # publish-crate:
