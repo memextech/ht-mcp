@@ -166,7 +166,7 @@ See our [Security Policy](SECURITY.md) for more information.
 When adding new dependencies:
 
 1. Ensure the dependency is actively maintained
-2. Check the license is compatible with MIT
+2. Check the license is compatible with Apache 2.0
 3. Minimize the number of new dependencies
 4. Update `Cargo.toml` with appropriate version constraints
 5. Document why the dependency is needed
