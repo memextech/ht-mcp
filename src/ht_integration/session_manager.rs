@@ -390,7 +390,7 @@ fn create_winsize(cols: u16, rows: u16) -> Winsize {
             ws_ypixel: 0,
         }
     }
-    
+
     #[cfg(windows)]
     {
         Winsize {

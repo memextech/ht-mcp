@@ -59,7 +59,7 @@ pub fn create_session_schema() -> Value {
     } else {
         "[\"bash\"]"
     };
-    
+
     json!({
         "type": "object",
         "properties": {

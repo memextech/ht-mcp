@@ -203,7 +203,7 @@ mod tests {
 
         // Use platform-agnostic default shell
         // NativeSessionManager.create_session already handles platform detection
-        
+
         // Create a session
         let create_result = manager
             .create_session(CreateSessionArgs {

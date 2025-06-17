@@ -74,7 +74,7 @@ impl NativeHtManager {
         // Start HT process
         // Use a function to get the platform-specific HT binary name
         let ht_binary = get_ht_binary_name();
-        
+
         let mut child = Command::new(ht_binary)
             .args(&ht_args)
             .stdin(Stdio::piped())
