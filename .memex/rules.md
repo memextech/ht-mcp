@@ -72,10 +72,15 @@
 
 ### Development Workflow
 1. Work off `main` branch (CI configured for both `main` and `feature/oss-setup`)
-2. **ALWAYS run `cargo fmt --all` before committing** - CI will fail on formatting violations
-3. All CI must pass before merging
-4. Integration tests are disabled in CI but work locally
-5. Use `shell: bash` for cross-platform CI commands
+2. **CRITICAL: ALWAYS run `cargo fmt --all` before every single commit** - CI will fail on formatting violations
+3. **MANDATORY PRE-COMMIT CHECKLIST:**
+   - `cargo fmt --all` (fix formatting)
+   - `cargo fmt --all -- --check` (verify no formatting issues)
+   - `cargo clippy --all-targets` (check linting)
+   - `cargo build` (verify compilation)
+4. All CI must pass before merging
+5. Integration tests are disabled in CI but work locally
+6. Use `shell: bash` for cross-platform CI commands
 
 ### Code Quality Requirements
 - **Formatting**: Run `cargo fmt --all` before every commit
@@ -84,11 +89,11 @@
 - **Build**: Both debug and release builds must succeed
 
 ### Diagnosing Issues
-1. **Formatting Failures**: Run `cargo fmt --all` to fix code formatting
+1. **Formatting Failures**: Run `cargo fmt --all` to fix code formatting - **MOST COMMON CI FAILURE**
 2. **CI Failures**: Check for missing `RUSTFLAGS="--cfg ci"` 
 3. **Test Failures**: Verify integration tests are properly marked with `#[cfg(not(ci))]`
 4. **Platform Issues**: Focus on Unix platforms (Ubuntu/macOS)
-5. **Submodule Issues**: Ensure pointing to correct fork (memextech/ht.git)
+5. **Submodule Issues**: Ensure pointing to correct fork (memextech/ht.git) and that commits are pushed to remote
 
 ### Key Patterns
 ```rust
