@@ -341,7 +341,7 @@ impl SessionManager {
 fn parse_key_to_input_seq(key: &str) -> ht_core::command::InputSeq {
     use ht_core::command::InputSeq;
     match key {
-        "Enter" => InputSeq::Standard("\n".to_string()),
+        "Enter" => InputSeq::Standard("\r\n".to_string()),
         "Tab" => InputSeq::Standard("\t".to_string()),
         "Escape" => InputSeq::Standard("\x1b".to_string()),
         "Space" => InputSeq::Standard(" ".to_string()),
@@ -421,7 +421,7 @@ mod tests {
         // Test basic keys
         assert_eq!(
             parse_key_to_input_seq("Enter"),
-            InputSeq::Standard("\n".to_string())
+            InputSeq::Standard("\r\n".to_string())
         );
         assert_eq!(
             parse_key_to_input_seq("Tab"),
