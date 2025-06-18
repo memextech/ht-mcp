@@ -213,3 +213,4 @@ Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidel
 ---
 
 Built with [Memex](https://memex.tech)✨
+# Fixed submodule commit reference
