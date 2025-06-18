@@ -7,12 +7,20 @@ A high-performance Rust implementation of a Model Context Protocol (MCP) server 
 
 ## Features
 
-- 🚀 **Pure Rust**: Single binary, no external dependencies
-- 🔗 **Direct Integration**: Embedded [ht](https://github.com/andyk/ht) library for optimal performance  
-- 📡 **MCP Compliant**: Full compatibility with MCP clients
+- 🚀 **Pure Rust**: Single binary MCP server, no external dependencies
+- 🔗 **Direct Integration**: Embed excellent [ht](https://github.com/andyk/ht) headless terminal library for optimal performance
 - 🖥️ **Multi-Session**: Concurrent terminal session management
 - 🌐 **Web Interface**: Optional live terminal preview
-- 💨 **Fast**: 40x faster startup than Node.js equivalent
+
+## Demo
+
+### ht-mcp in [Memex](https://memex.tech)
+
+![ht-mcp in Memex](https://github.com/user-attachments/assets/6a1b6e76-5d5c-4ba4-87ee-70a31f0bc4ce)
+
+### ht-mcp in [Claude Code](https://www.anthropic.com/claude-code)
+
+![ht-mcp in Claude Code](https://github.com/user-attachments/assets/e70a3240-77f5-4ef2-953b-202b310dbf74)
 
 ## Installation
 
@@ -144,7 +152,7 @@ bash-3.2$ ls -la
 total 16
 drwxr-xr-x  4 user staff  128 Jun 13 10:30 .
 -rw-r--r--  1 user staff   45 Jun 13 10:30 file.txt
-bash-3.2$ 
+bash-3.2$
 ```
 ```
 
@@ -152,7 +160,6 @@ bash-3.2$
 
 - **Rust**: 1.75+ (install via [rustup](https://rustup.rs/))
 - **Supported OS**: Linux, macOS, Windows (experimental)
-- **Git**: For submodule handling during build
 
 ## Development
 
@@ -185,7 +192,7 @@ cargo test
 
 ## Performance
 
-Compared to the original TypeScript implementation:
+Compared to the original [TypeScript implementation](https://github.com/memextech/headless-terminal-mcp):
 - **40x faster startup** (~50ms vs ~2s)
 - **70% less memory** (~15MB vs ~50MB)
 - **Single binary** (4.7MB vs ~200MB Node.js)
@@ -205,4 +212,4 @@ Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidel
 
 ---
 
-Built with ❤️ by [Memex](https://memex.tech)
+Built with ✨ by [Memex](https://memex.tech)
