@@ -36,8 +36,7 @@
   - `session_manager.rs` - Session management with ht-core library
   - `command_bridge.rs` - Command bridging
   - `event_handler.rs` - Event handling
-- `.github/workflows/ci.yml` - Main CI pipeline
-- `.github/workflows/test-ci.yml` - Quick test pipeline
+- `.github/workflows/ci.yml` - Single consolidated CI pipeline
 - `Cargo.toml` - Dependencies and lint configuration
 
 ## CI Infrastructure
@@ -124,12 +123,13 @@ mod tests {
 - ✅ Implemented conditional test compilation
 - ✅ Configured proper Rust linting
 - ✅ Established reliable CI matrix with `main` branch support
-- ✅ Both CI workflows now passing consistently
+- ✅ **CONSOLIDATED: CI workflows to prevent duplicate builds**
 - ✅ **FIXED: Parameter name mismatch in MCP schemas** 
 - ✅ **FIXED: Response formatting to match TypeScript implementation**
 - ✅ **FIXED: Code formatting compliance for CI**
 - ✅ **FIXED: Centralized tool definitions to eliminate duplicate schemas**
 - ✅ **FIXED: CTRL+KEY sequence parsing bug in library integration**
+- ✅ **FIXED: Enter key for interactive CLI tools (v0.1.2)**
 - ✅ **REMOVED: Dead code from native webserver approach**
 - ✅ **ADDED: Comprehensive test coverage for key parsing**
 
