@@ -1,0 +1,5 @@
+Emacs Line 1
+Emacs Line 2
+
+Emacs Line 4 after double enter
+Emacs Line 5^x^sBackspaceBackspaceBackspaceBackspace
