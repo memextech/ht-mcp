@@ -337,8 +337,6 @@ impl SessionManager {
     }
 }
 
-
-
 /// Creates a Winsize struct with platform-appropriate fields
 /// This function abstracts away platform differences in the Winsize struct
 fn create_winsize(cols: u16, rows: u16) -> Winsize {
@@ -360,5 +358,3 @@ fn create_winsize(cols: u16, rows: u16) -> Winsize {
         }
     }
 }
-
-
