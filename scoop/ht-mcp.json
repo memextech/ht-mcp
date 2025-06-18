@@ -1,0 +1,26 @@
+{
+    "version": "0.1.0",
+    "description": "MCP (Model Context Protocol) server for headless terminal interactions",
+    "homepage": "https://github.com/memextech/ht-mcp",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/memextech/ht-mcp/releases/download/v0.1.0/ht-mcp-x86_64-pc-windows-msvc.exe",
+            "hash": "sha256:$HASH_PLACEHOLDER",
+            "bin": [
+                [
+                    "ht-mcp-x86_64-pc-windows-msvc.exe",
+                    "ht-mcp"
+                ]
+            ]
+        }
+    },
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/memextech/ht-mcp/releases/download/v$version/ht-mcp-x86_64-pc-windows-msvc.exe"
+            }
+        }
+    }
+}

@@ -246,6 +246,75 @@ jobs:
           # Upload binary and checksum
           gh release upload $VERSION $ASSET_NAME "$ASSET_NAME.sha256"
 
+  # Update package manager manifests
+  update-manifests:
+    name: Update Package Manifests
+    needs: [create-release, build-release]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Get Windows binary hash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.create-release.outputs.version }}"
+          HASH=$(gh release download "$VERSION" --pattern "ht-mcp-x86_64-pc-windows-msvc.exe.sha256" --output - | cut -d' ' -f1)
+          echo "WINDOWS_HASH=$HASH" >> $GITHUB_ENV
+      
+      - name: Update package manifests
+        run: |
+          VERSION="${{ needs.create-release.outputs.version }}"
+          ./scripts/update-package-manifests.sh "$VERSION" "$WINDOWS_HASH"
+      
+      - name: Create package manifests PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.create-release.outputs.version }}"
+          BRANCH="update-packages-$VERSION"
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git checkout -b "$BRANCH"
+          git add scoop/ winget/ chocolatey/
+          git commit -m "Update package manifests for $VERSION
+
+          🤖 Generated with Memex
+          Co-Authored-By: Memex <noreply@memex.tech>"
+          
+          git push origin "$BRANCH"
+          
+          cat << 'EOF' > pr_body.md
+          ## Package Manager Updates for $VERSION
+          
+          This PR updates the package manager manifests with the correct version and checksums for the $VERSION release.
+          
+          ### Changes:
+          - ✅ Updated Scoop manifest (`scoop/ht-mcp.json`)
+          - ✅ Updated Winget manifest (`winget/ht-mcp.yaml`) 
+          - ✅ Updated Chocolatey manifest (`chocolatey/ht-mcp.nuspec`)
+          
+          ### Next Steps:
+          After merging this PR, maintainers should:
+          1. Submit Scoop PR to [ScoopInstaller/Main](https://github.com/ScoopInstaller/Main)
+          2. Submit Winget PR to [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs)
+          3. Build and push Chocolatey package
+          
+          ### Verification:
+          Windows binary hash: `$WINDOWS_HASH`
+          EOF
+          
+          gh pr create \
+            --title "📦 Update package manifests for $VERSION" \
+            --body-file pr_body.md \
+            --head "$BRANCH" \
+            --base main
+
   # Publish to crates.io - DISABLED until ht-core publishes to crates.io
   # publish-crate:
   #   name: Publish to Crates.io

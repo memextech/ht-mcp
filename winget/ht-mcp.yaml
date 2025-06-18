@@ -1,0 +1,53 @@
+# Created using wingetcreate
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.4.0.schema.json
+
+PackageIdentifier: MemexTech.HtMcp
+PackageVersion: 0.1.0
+DefaultLocale: en-US
+ManifestType: version
+ManifestVersion: 1.4.0
+---
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.4.0.schema.json
+
+PackageIdentifier: MemexTech.HtMcp
+PackageVersion: 0.1.0
+PackageLocale: en-US
+Publisher: MemexTech
+PublisherUrl: https://memex.tech
+PublisherSupportUrl: https://github.com/memextech/ht-mcp/issues
+PackageName: ht-mcp
+PackageUrl: https://github.com/memextech/ht-mcp
+License: MIT
+LicenseUrl: https://github.com/memextech/ht-mcp/blob/main/LICENSE
+ShortDescription: MCP (Model Context Protocol) server for headless terminal interactions
+Description: |-
+  HT-MCP is a Model Context Protocol (MCP) server that provides terminal session management capabilities.
+  It allows AI assistants to create, manage, and interact with headless terminal sessions through a
+  standardized protocol interface.
+Moniker: ht-mcp
+Tags:
+- cli
+- mcp
+- terminal
+- rust
+- automation
+- ai-tools
+ManifestType: defaultLocale
+ManifestVersion: 1.4.0
+---
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.4.0.schema.json
+
+PackageIdentifier: MemexTech.HtMcp
+PackageVersion: 0.1.0
+Installers:
+- Architecture: x64
+  InstallerType: zip
+  InstallerUrl: https://github.com/memextech/ht-mcp/releases/download/v0.1.0/ht-mcp-x86_64-pc-windows-msvc.exe
+  InstallerSha256: $HASH_PLACEHOLDER
+  InstallerSwitches:
+    Silent: ""
+    SilentWithProgress: ""
+  Commands:
+  - ht-mcp
+ManifestType: installer
+ManifestVersion: 1.4.0
