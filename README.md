@@ -143,17 +143,17 @@ HT session created successfully!
 Session ID: abc123-def456-789...
 
 🌐 Web server enabled! View live terminal at: http://127.0.0.1:3000
+```
 
+```text
 # Terminal snapshot response
 Terminal Snapshot (Session: abc123...)
 
-```
 bash-3.2$ ls -la
 total 16
 drwxr-xr-x  4 user staff  128 Jun 13 10:30 .
 -rw-r--r--  1 user staff   45 Jun 13 10:30 file.txt
 bash-3.2$
-```
 ```
 
 ## Requirements
@@ -212,4 +212,4 @@ Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidel
 
 ---
 
-Built with ✨ by [Memex](https://memex.tech)
+Built with [Memex](https://memex.tech)✨
