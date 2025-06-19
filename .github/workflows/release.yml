@@ -238,8 +238,8 @@ jobs:
           VERSION="${{ needs.create-release.outputs.version }}"
           ASSET_NAME="ht-mcp-${{ matrix.target }}"
           
-          # Upload binary and checksum
-          gh release upload "$VERSION" "$ASSET_NAME" "$ASSET_NAME.sha256"
+          # Upload binary and checksum (--clobber overwrites existing assets)
+          gh release upload "$VERSION" "$ASSET_NAME" "$ASSET_NAME.sha256" --clobber
 
       - name: Upload Release Assets (Windows)
         if: runner.os == 'Windows'
@@ -251,8 +251,8 @@ jobs:
           $VERSION = "${{ needs.create-release.outputs.version }}"
           $ASSET_NAME = "ht-mcp-${{ matrix.target }}.exe"
           
-          # Upload binary and checksum
-          gh release upload $VERSION $ASSET_NAME "$ASSET_NAME.sha256"
+          # Upload binary and checksum (--clobber overwrites existing assets)
+          gh release upload $VERSION $ASSET_NAME "$ASSET_NAME.sha256" --clobber
 
   # Publish to crates.io - DISABLED until ht-core publishes to crates.io
   # publish-crate:
