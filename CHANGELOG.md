@@ -8,8 +8,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 - Updated web server port range from 3000-4000 to 3618-3999 to avoid conflicts with common development servers (Next.js, React, etc.)
-- Added explanatory comments for port range selection
-- Updated documentation and tests to reflect new port range
 
 ## [0.1.1] - 2025-06-17
 
