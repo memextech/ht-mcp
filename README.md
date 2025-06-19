@@ -142,7 +142,7 @@ HT session created successfully!
 
 Session ID: abc123-def456-789...
 
-🌐 Web server enabled! View live terminal at: http://127.0.0.1:3000
+🌐 Web server enabled! View live terminal at: http://127.0.0.1:3618
 ```
 
 ```text
