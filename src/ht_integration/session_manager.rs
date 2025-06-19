@@ -208,6 +208,11 @@ impl SessionManager {
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
         // Convert keys to InputSeq format using intelligent key parsing
+        info!("send_keys: processing {} keys", args.keys.len());
+        for (i, key) in args.keys.iter().enumerate() {
+            info!("  key[{}]: '{}' (len: {}, is_special: {})", i, key, key.len(), is_special_key(key));
+        }
+        
         let input_seqs: Vec<ht_core::command::InputSeq> = args
             .keys
             .iter()
@@ -366,8 +371,49 @@ fn smart_parse_key(key: &str) -> ht_core::command::InputSeq {
     if is_special_key(key) {
         ht_core::api::stdio::parse_key(key.to_string())
     } else {
+        // Check if this is a git commit with complex content that needs file-based approach
+        if let Some(converted_command) = convert_complex_git_commit(key) {
+            info!("Converted complex git commit to file-based approach");
+            return ht_core::api::stdio::standard_key(converted_command);
+        }
+        
+        // For regular text content, pass through as-is
         ht_core::api::stdio::standard_key(key)
     }
+}
+
+/// Convert complex git commit commands to file-based approach
+fn convert_complex_git_commit(key: &str) -> Option<String> {
+    // Check if this is a git commit with multiline content or special characters
+    if key.starts_with("git commit") && 
+       (key.contains("\\n") || key.contains("🤖") || key.contains("[Memex]") || key.contains("Co-Authored-By")) {
+        
+        // Extract the commit message content
+        if let Some(msg_start) = key.find("-m \"") {
+            let msg_content_start = msg_start + 4; // Skip `-m "`
+            if let Some(msg_end) = key.rfind('"') {
+                let msg_content = &key[msg_content_start..msg_end];
+                
+                // Process escape sequences
+                let processed_msg = msg_content
+                    .replace("\\n", "\n")
+                    .replace("\\t", "\t")
+                    .replace("\\\"", "\"");
+                
+                // Generate file-based commit command
+                let temp_file = ".git_commit_msg_temp";
+                return Some(format!(
+                    "echo '{}' > {} && git commit -F {} && rm {}",
+                    processed_msg.replace("'", "'\"'\"'"), // Escape single quotes
+                    temp_file,
+                    temp_file,
+                    temp_file
+                ));
+            }
+        }
+    }
+    
+    None
 }
 
 /// Determine if a string represents a special key vs literal text
@@ -562,7 +608,7 @@ mod tests {
         let expected_text = ht_core::api::stdio::standard_key("hello world");
         assert_eq!(format!("{:?}", text_result), format!("{:?}", expected_text));
         
-        // Complex git command should use standard_key
+        // Simple git command should use standard_key
         let git_result = smart_parse_key("git commit -m \"test\"");
         let expected_git = ht_core::api::stdio::standard_key("git commit -m \"test\"");
         assert_eq!(format!("{:?}", git_result), format!("{:?}", expected_git));
@@ -571,5 +617,50 @@ mod tests {
         let emoji_result = smart_parse_key("🤖 Generated with [Memex](https://memex.tech)");
         let expected_emoji = ht_core::api::stdio::standard_key("🤖 Generated with [Memex](https://memex.tech)");
         assert_eq!(format!("{:?}", emoji_result), format!("{:?}", expected_emoji));
+    }
+
+    #[test]
+    fn test_convert_complex_git_commit() {
+        // Simple git commit should not be converted
+        assert_eq!(convert_complex_git_commit("git commit -m \"simple\""), None);
+        
+        // Complex git commit with newlines should be converted
+        let complex_commit = "git commit -m \"Line 1\\nLine 2\"";
+        let result = convert_complex_git_commit(complex_commit);
+        assert!(result.is_some());
+        let cmd = result.unwrap();
+        assert!(cmd.contains("echo"));
+        assert!(cmd.contains("-F"));
+        
+        // Git commit with emoji should be converted
+        let emoji_commit = "git commit -m \"Test 🤖 emoji\"";
+        let result = convert_complex_git_commit(emoji_commit);
+        assert!(result.is_some());
+        
+        // Git commit with Memex attribution should be converted
+        let memex_commit = "git commit -m \"Test [Memex](https://memex.tech)\"";
+        let result = convert_complex_git_commit(memex_commit);
+        assert!(result.is_some());
+        
+        // Git commit with Co-Authored-By should be converted
+        let coauthor_commit = "git commit -m \"Test Co-Authored-By: Name\"";
+        let result = convert_complex_git_commit(coauthor_commit);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_complex_git_commit_integration() {
+        // Test that complex git commits get converted to file-based approach
+        let complex_commit = "git commit -m \"Fix issue\\n\\n🤖 Generated with [Memex](https://memex.tech)\\nCo-Authored-By: Memex <noreply@memex.tech>\"";
+        let result = smart_parse_key(complex_commit);
+        
+        // Should be treated as standard key (but with converted content)
+        if let ht_core::command::InputSeq::Standard(cmd) = result {
+            assert!(cmd.contains("echo"));
+            assert!(cmd.contains("-F"));
+            assert!(cmd.contains("🤖"));
+        } else {
+            panic!("Expected Standard InputSeq for complex git commit");
+        }
     }
 }
