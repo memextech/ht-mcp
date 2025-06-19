@@ -363,10 +363,7 @@ fn create_winsize(cols: u16, rows: u16) -> Winsize {
 
 /// Intelligently parse a key string as either a special key or literal text
 fn smart_parse_key(key: &str) -> ht_core::command::InputSeq {
-    let is_special = is_special_key(key);
-    info!("smart_parse_key: '{}' -> is_special: {}", key, is_special);
-    
-    if is_special {
+    if is_special_key(key) {
         ht_core::api::stdio::parse_key(key.to_string())
     } else {
         ht_core::api::stdio::standard_key(key)
@@ -375,13 +372,38 @@ fn smart_parse_key(key: &str) -> ht_core::command::InputSeq {
 
 /// Determine if a string represents a special key vs literal text
 fn is_special_key(key: &str) -> bool {
-    // Long strings are definitely text, not keys
-    if key.len() > 20 {
+    // Empty strings are not keys
+    if key.is_empty() {
+        return false;
+    }
+    
+    // Long strings are definitely text, not keys (reduced threshold for git commands)
+    if key.len() > 15 {
+        return false;
+    }
+    
+    // Strings containing quotes are definitely text
+    if key.contains('"') || key.contains('\'') {
+        return false;
+    }
+    
+    // Strings containing command-like patterns are text
+    if key.contains("git ") || key.contains("echo ") || key.contains("cd ") {
+        return false;
+    }
+    
+    // Strings with multiple spaces are usually commands/text
+    if key.matches(' ').count() > 1 {
         return false;
     }
     
     // Strings with spaces are usually text (except for special cases)
     if key.contains(' ') && !matches!(key, "C-Space" | "Space") {
+        return false;
+    }
+    
+    // URLs and brackets indicate text content
+    if key.contains("http") || key.contains('[') || key.contains(']') || key.contains('<') || key.contains('>') {
         return false;
     }
     
@@ -394,16 +416,18 @@ fn is_special_key(key: &str) -> bool {
         // Function keys
         "F1" | "F2" | "F3" | "F4" | "F5" | "F6" | "F7" | "F8" | "F9" | "F10" | "F11" | "F12" |
         // Home/End/Page keys
-        "Home" | "End" | "PageUp" | "PageDown"
+        "Home" | "End" | "PageUp" | "PageDown" |
+        // Backspace/Delete
+        "Backspace" | "Delete"
     ) || 
-    // Single characters (likely literal keys)
-    key.len() == 1 ||
-    // Control sequences
-    key.starts_with("C-") || key.starts_with("^") ||
-    // Alt sequences
-    key.starts_with("A-") ||
-    // Shift sequences  
-    key.starts_with("S-")
+    // Single characters (likely literal keys, but be careful with common text chars)
+    (key.len() == 1 && !key.chars().next().unwrap().is_whitespace()) ||
+    // Control sequences (must be reasonable length and follow pattern)
+    (key.len() <= 8 && (key.starts_with("C-") || key.starts_with("^"))) ||
+    // Alt sequences (must be reasonable length)
+    (key.len() <= 6 && key.starts_with("A-")) ||
+    // Shift sequences (must be reasonable length)  
+    (key.len() <= 10 && key.starts_with("S-"))
 }
 
 #[cfg(test)]
@@ -411,40 +435,141 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_special_key_detection() {
-        // Special keys should be parsed normally
+    fn test_special_key_detection_valid_keys() {
+        // Basic keys
         assert!(is_special_key("Enter"));
         assert!(is_special_key("Tab"));
+        assert!(is_special_key("Space"));
+        assert!(is_special_key("Escape"));
+        
+        // Arrow keys
+        assert!(is_special_key("Left"));
+        assert!(is_special_key("Right"));
+        assert!(is_special_key("Up"));
+        assert!(is_special_key("Down"));
+        
+        // Function keys
+        assert!(is_special_key("F1"));
+        assert!(is_special_key("F12"));
+        
+        // Home/End/Page keys
+        assert!(is_special_key("Home"));
+        assert!(is_special_key("End"));
+        assert!(is_special_key("PageUp"));
+        assert!(is_special_key("PageDown"));
+        
+        // Control sequences (short)
         assert!(is_special_key("C-x"));
         assert!(is_special_key("C-c"));
         assert!(is_special_key("^c"));
+        assert!(is_special_key("^C"));
+        
+        // Alt sequences (short)
         assert!(is_special_key("A-x"));
+        assert!(is_special_key("A-1"));
+        
+        // Shift sequences (short)
         assert!(is_special_key("S-Left"));
-        assert!(is_special_key("F1"));
-        assert!(is_special_key("Space"));
-        assert!(is_special_key("C-Space"));
+        
+        // Single characters
         assert!(is_special_key("a"));
         assert!(is_special_key("1"));
-        
-        // Text content should NOT be treated as special keys
-        assert!(!is_special_key("hello world"));
-        assert!(!is_special_key("git commit -m"));
-        assert!(!is_special_key("🤖 Generated with [Memex](https://memex.tech)"));
-        assert!(!is_special_key("Co-Authored-By: Memex <noreply@memex.tech>"));
-        assert!(!is_special_key("This is a very long string that is definitely text content"));
-        assert!(!is_special_key("echo 'hello world'"));
+        assert!(is_special_key("!"));
     }
 
     #[test]
-    fn test_smart_parse_key() {
+    fn test_special_key_detection_text_content() {
+        // Simple text
+        assert!(!is_special_key("hello world"));
+        assert!(!is_special_key("multiple words here"));
+        
+        // Git commands (the main use case)
+        assert!(!is_special_key("git commit -m"));
+        assert!(!is_special_key("git status"));
+        assert!(!is_special_key("echo 'test'"));
+        assert!(!is_special_key("cd /path/to/dir"));
+        
+        // Quoted strings
+        assert!(!is_special_key("\"quoted string\""));
+        assert!(!is_special_key("'single quoted'"));
+        assert!(!is_special_key("git commit -m \"message\""));
+        
+        // Long strings
+        assert!(!is_special_key("This is a very long string"));
+        assert!(!is_special_key("git commit -m \"Long commit message here\""));
+        
+        // URLs and markup
+        assert!(!is_special_key("https://example.com"));
+        assert!(!is_special_key("[Memex](https://memex.tech)"));
+        assert!(!is_special_key("<noreply@memex.tech>"));
+        
+        // Email addresses
+        assert!(!is_special_key("Co-Authored-By: Memex <noreply@memex.tech>"));
+        
+        // Empty string
+        assert!(!is_special_key(""));
+    }
+
+    #[test]
+    fn test_complex_commit_message_cases() {
+        // The actual failing cases from the issue
+        let complex_commit = "git commit -m \"Fix complex key parsing\\n\\n🤖 Generated with [Memex](https://memex.tech)\\nCo-Authored-By: Memex <noreply@memex.tech>\"";
+        assert!(!is_special_key(complex_commit));
+        
+        // Emoji handling
+        assert!(!is_special_key("🤖 Generated with [Memex](https://memex.tech)"));
+        assert!(!is_special_key("Co-Authored-By: Memex <noreply@memex.tech>"));
+        
+        // Markdown URLs
+        assert!(!is_special_key("[Memex](https://memex.tech)"));
+        assert!(!is_special_key("Visit [our site](https://example.com)"));
+        
+        // Multi-line markers (escaped)
+        assert!(!is_special_key("First line\\nSecond line"));
+    }
+
+    #[test]
+    fn test_edge_cases() {
+        // Control sequences that are too long should be text
+        assert!(!is_special_key("C-very-long-sequence"));
+        
+        // Multiple spaces indicate commands
+        assert!(!is_special_key("command with multiple spaces"));
+        
+        // Valid C-Space vs invalid space combinations
+        assert!(is_special_key("C-Space"));
+        assert!(!is_special_key("not valid space"));
+        
+        // Whitespace characters as single chars
+        assert!(!is_special_key(" ")); // Space char should use "Space" key name
+        assert!(!is_special_key("\t")); // Tab char should use "Tab" key name
+    }
+
+    #[test]
+    fn test_smart_parse_key_integration() {
         // Special keys should use parse_key
         let enter_result = smart_parse_key("Enter");
         let expected_enter = ht_core::api::stdio::parse_key("Enter".to_string());
         assert_eq!(format!("{:?}", enter_result), format!("{:?}", expected_enter));
         
+        // Control key
+        let ctrl_c_result = smart_parse_key("C-c");
+        let expected_ctrl_c = ht_core::api::stdio::parse_key("C-c".to_string());
+        assert_eq!(format!("{:?}", ctrl_c_result), format!("{:?}", expected_ctrl_c));
+        
         // Text should use standard_key
         let text_result = smart_parse_key("hello world");
         let expected_text = ht_core::api::stdio::standard_key("hello world");
         assert_eq!(format!("{:?}", text_result), format!("{:?}", expected_text));
+        
+        // Complex git command should use standard_key
+        let git_result = smart_parse_key("git commit -m \"test\"");
+        let expected_git = ht_core::api::stdio::standard_key("git commit -m \"test\"");
+        assert_eq!(format!("{:?}", git_result), format!("{:?}", expected_git));
+        
+        // Emoji string should use standard_key
+        let emoji_result = smart_parse_key("🤖 Generated with [Memex](https://memex.tech)");
+        let expected_emoji = ht_core::api::stdio::standard_key("🤖 Generated with [Memex](https://memex.tech)");
+        assert_eq!(format!("{:?}", emoji_result), format!("{:?}", expected_emoji));
     }
 }
