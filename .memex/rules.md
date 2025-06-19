@@ -177,6 +177,7 @@ mod tests {
 - ✅ **REMOVED: Dead code from native webserver approach**
 - ✅ **ADDED: Comprehensive test coverage for key parsing**
 - ✅ **FIXED: Release workflow duplicate release creation (v0.1.2)**
+- ✅ **REMOVED: File-based git commit workaround - complex messages work directly**
 
 ### Release Workflow Duplicate Creation Fix
 - **Issue**: Release workflow failed when release already existed with "Release.tag_name already exists" error
