@@ -119,11 +119,14 @@ mod tests {
 
 ### Release Process
 1. **Version Update**: Bump version in `Cargo.toml`
-2. **Changelog**: Add entry to `CHANGELOG.md` with date and changes
-3. **Commit**: Commit version changes with descriptive message
-4. **Tag**: Create git tag with `git tag v{version}` (e.g., `git tag v0.1.3`)
-5. **Push**: Push both commits and tags with `git push origin main --tags`
-6. **GitHub Release**: Tag push triggers automated release workflow
+2. **Update Lock File**: Run `cargo update` to update Cargo.lock with new version
+3. **Changelog**: Add entry to `CHANGELOG.md` with date and changes
+4. **Commit**: Commit version changes (Cargo.toml, Cargo.lock, CHANGELOG.md) with descriptive message
+5. **Tag**: Create git tag with `git tag v{version}` (e.g., `git tag v0.1.3`)
+6. **Push**: Push both commits and tags with `git push origin main --tags`
+7. **GitHub Release**: Tag push triggers automated release workflow
+
+**Critical**: Always run `cargo update` after version bump - CI uses `--locked` flag and will fail if Cargo.lock is outdated
 
 ## Recent Achievements
 - ✅ Fixed all CI pipeline issues (including formatting requirements)
