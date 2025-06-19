@@ -1,0 +1,1 @@
+Test smart key parsing fix
