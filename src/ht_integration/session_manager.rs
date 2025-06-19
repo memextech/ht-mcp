@@ -189,8 +189,10 @@ impl SessionManager {
     }
 
     /// Find an available port for the webserver
+    /// Uses port range 3618-3999 to avoid conflicts with common development servers
+    /// (Next.js: 3000, React: 3001, etc.)
     async fn find_available_port(&self) -> Result<u16> {
-        for port in 3000..4000 {
+        for port in 3618..3999 {
             if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{}", port)) {
                 drop(listener);
                 return Ok(port);

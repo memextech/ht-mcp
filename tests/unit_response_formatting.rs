@@ -8,7 +8,7 @@ fn test_create_session_response_format() {
     let mock_response = json!({
         "sessionId": "test-session-123",
         "webServerEnabled": true,
-        "webServerUrl": "http://127.0.0.1:3000"
+        "webServerUrl": "http://127.0.0.1:3618"
     });
 
     let formatted = format_create_session_response(&mock_response);
@@ -16,7 +16,7 @@ fn test_create_session_response_format() {
     assert!(formatted.contains("HT session created successfully!"));
     assert!(formatted.contains("Session ID: test-session-123"));
     assert!(formatted.contains("🌐 Web server enabled!"));
-    assert!(formatted.contains("http://127.0.0.1:3000"));
+    assert!(formatted.contains("http://127.0.0.1:3618"));
 }
 
 #[test]
