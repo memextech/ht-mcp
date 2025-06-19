@@ -208,17 +208,24 @@ impl SessionManager {
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
         // Convert keys to InputSeq format using intelligent key parsing
-        info!("send_keys: processing {} keys for session {}", args.keys.len(), args.session_id);
+        info!(
+            "send_keys: processing {} keys for session {}",
+            args.keys.len(),
+            args.session_id
+        );
         for (i, key) in args.keys.iter().enumerate() {
-            info!("  key[{}]: '{}' (len: {}, is_special: {}, contains_email: {})", 
-                  i, key, key.len(), is_special_key(key), key.contains("noreply@memex.tech"));
+            info!(
+                "  key[{}]: '{}' (len: {}, is_special: {}, contains_email: {})",
+                i,
+                key,
+                key.len(),
+                is_special_key(key),
+                key.contains("noreply@memex.tech")
+            );
         }
-        
-        let input_seqs: Vec<ht_core::command::InputSeq> = args
-            .keys
-            .iter()
-            .map(|key| smart_parse_key(key))
-            .collect();
+
+        let input_seqs: Vec<ht_core::command::InputSeq> =
+            args.keys.iter().map(|key| smart_parse_key(key)).collect();
 
         // Send keys via the command channel
         session
@@ -377,45 +384,48 @@ fn smart_parse_key(key: &str) -> ht_core::command::InputSeq {
     }
 }
 
-
-
 /// Determine if a string represents a special key vs literal text
 fn is_special_key(key: &str) -> bool {
     // Empty strings are not keys
     if key.is_empty() {
         return false;
     }
-    
+
     // Long strings are definitely text, not keys (reduced threshold for git commands)
     if key.len() > 15 {
         return false;
     }
-    
+
     // Strings containing quotes are definitely text
     if key.contains('"') || key.contains('\'') {
         return false;
     }
-    
+
     // Strings containing command-like patterns are text
     if key.contains("git ") || key.contains("echo ") || key.contains("cd ") {
         return false;
     }
-    
+
     // Strings with multiple spaces are usually commands/text
     if key.matches(' ').count() > 1 {
         return false;
     }
-    
+
     // Strings with spaces are usually text (except for special cases)
     if key.contains(' ') && !matches!(key, "C-Space" | "Space") {
         return false;
     }
-    
+
     // URLs and brackets indicate text content
-    if key.contains("http") || key.contains('[') || key.contains(']') || key.contains('<') || key.contains('>') {
+    if key.contains("http")
+        || key.contains('[')
+        || key.contains(']')
+        || key.contains('<')
+        || key.contains('>')
+    {
         return false;
     }
-    
+
     // Check if it matches known key patterns
     matches!(key,
         // Basic keys
@@ -428,7 +438,7 @@ fn is_special_key(key: &str) -> bool {
         "Home" | "End" | "PageUp" | "PageDown" |
         // Backspace/Delete
         "Backspace" | "Delete"
-    ) || 
+    ) ||
     // Single characters (likely literal keys, but be careful with common text chars)
     (key.len() == 1 && !key.chars().next().unwrap().is_whitespace()) ||
     // Control sequences (must be reasonable length and follow pattern)
@@ -450,36 +460,36 @@ mod tests {
         assert!(is_special_key("Tab"));
         assert!(is_special_key("Space"));
         assert!(is_special_key("Escape"));
-        
+
         // Arrow keys
         assert!(is_special_key("Left"));
         assert!(is_special_key("Right"));
         assert!(is_special_key("Up"));
         assert!(is_special_key("Down"));
-        
+
         // Function keys
         assert!(is_special_key("F1"));
         assert!(is_special_key("F12"));
-        
+
         // Home/End/Page keys
         assert!(is_special_key("Home"));
         assert!(is_special_key("End"));
         assert!(is_special_key("PageUp"));
         assert!(is_special_key("PageDown"));
-        
+
         // Control sequences (short)
         assert!(is_special_key("C-x"));
         assert!(is_special_key("C-c"));
         assert!(is_special_key("^c"));
         assert!(is_special_key("^C"));
-        
+
         // Alt sequences (short)
         assert!(is_special_key("A-x"));
         assert!(is_special_key("A-1"));
-        
+
         // Shift sequences (short)
         assert!(is_special_key("S-Left"));
-        
+
         // Single characters
         assert!(is_special_key("a"));
         assert!(is_special_key("1"));
@@ -491,30 +501,34 @@ mod tests {
         // Simple text
         assert!(!is_special_key("hello world"));
         assert!(!is_special_key("multiple words here"));
-        
+
         // Git commands (the main use case)
         assert!(!is_special_key("git commit -m"));
         assert!(!is_special_key("git status"));
         assert!(!is_special_key("echo 'test'"));
         assert!(!is_special_key("cd /path/to/dir"));
-        
+
         // Quoted strings
         assert!(!is_special_key("\"quoted string\""));
         assert!(!is_special_key("'single quoted'"));
         assert!(!is_special_key("git commit -m \"message\""));
-        
+
         // Long strings
         assert!(!is_special_key("This is a very long string"));
-        assert!(!is_special_key("git commit -m \"Long commit message here\""));
-        
+        assert!(!is_special_key(
+            "git commit -m \"Long commit message here\""
+        ));
+
         // URLs and markup
         assert!(!is_special_key("https://example.com"));
         assert!(!is_special_key("[Memex](https://memex.tech)"));
         assert!(!is_special_key("<noreply@memex.tech>"));
-        
+
         // Email addresses
-        assert!(!is_special_key("Co-Authored-By: Memex <noreply@memex.tech>"));
-        
+        assert!(!is_special_key(
+            "Co-Authored-By: Memex <noreply@memex.tech>"
+        ));
+
         // Empty string
         assert!(!is_special_key(""));
     }
@@ -530,9 +544,9 @@ Co-Authored-By: Memex <noreply@memex.tech>
 Issue: Terminal seemed to have problems with multiline commit message or emoji encoding
 Date: Current session
 Context: Updating .memex/rules.md with MCP submission status and documentation references"#;
-        
+
         assert!(!is_special_key(complex_commit_1));
-        
+
         // Test another complex format with emoji and URLs
         let complex_commit_2 = r#"🚀 Add proof of concept feature
 
@@ -542,9 +556,9 @@ This is a multiline commit message with:
 - URLs: https://github.com/memextech/ht-mcp
 
 Co-Authored-By: Memex <noreply@memex.tech>"#;
-        
+
         assert!(!is_special_key(complex_commit_2));
-        
+
         // Test commit with various special characters and formatting
         let complex_commit_3 = r#"Fix: Handle special characters & symbols properly
 
@@ -556,7 +570,7 @@ Co-Authored-By: Memex <noreply@memex.tech>"#;
 
 🤖 Generated with [Memex](https://memex.tech)
 Co-Authored-By: Memex <noreply@memex.tech>"#;
-        
+
         assert!(!is_special_key(complex_commit_3));
     }
 
@@ -567,14 +581,17 @@ Co-Authored-By: Memex <noreply@memex.tech>"#;
 
 This is a multiline commit message with:
 - Emoji 😀 and special characters"#;
-        
+
         let parsed = smart_parse_key(complex_message);
         // The exact implementation details depend on ht_core, but we know it should handle this as text
         // This test mainly ensures no panics occur with complex input
         match parsed {
             ht_core::command::InputSeq::Standard(text) => {
-                assert!(!text.is_empty(), "Complex content should produce non-empty text");
-            },
+                assert!(
+                    !text.is_empty(),
+                    "Complex content should produce non-empty text"
+                );
+            }
             ht_core::command::InputSeq::Cursor(_, _) => {
                 // Also acceptable for complex content
             }
@@ -585,17 +602,17 @@ This is a multiline commit message with:
     fn test_smart_parse_key_functionality() {
         // Test that the function works without panics for various inputs
         let _enter = smart_parse_key("Enter");
-        let _ctrl_c = smart_parse_key("C-c"); 
+        let _ctrl_c = smart_parse_key("C-c");
         let _hat_c = smart_parse_key("^c");
         let _text = smart_parse_key("abc");
         let _complex = smart_parse_key("git commit -m \"message\"");
-        
+
         // Main test: ensure complex git commit content is not treated as special keys
         let git_commit = r#"Update project rules
 
 🤖 Generated with [Memex](https://memex.tech)
 Co-Authored-By: Memex <noreply@memex.tech>"#;
-        
+
         let _parsed_git = smart_parse_key(git_commit);
         // As long as it doesn't panic, it's working correctly
     }
@@ -605,15 +622,19 @@ Co-Authored-By: Memex <noreply@memex.tech>"#;
         // The actual failing cases from the issue
         let complex_commit = "git commit -m \"Fix complex key parsing\\n\\n🤖 Generated with [Memex](https://memex.tech)\\nCo-Authored-By: Memex <noreply@memex.tech>\"";
         assert!(!is_special_key(complex_commit));
-        
+
         // Emoji handling
-        assert!(!is_special_key("🤖 Generated with [Memex](https://memex.tech)"));
-        assert!(!is_special_key("Co-Authored-By: Memex <noreply@memex.tech>"));
-        
+        assert!(!is_special_key(
+            "🤖 Generated with [Memex](https://memex.tech)"
+        ));
+        assert!(!is_special_key(
+            "Co-Authored-By: Memex <noreply@memex.tech>"
+        ));
+
         // Markdown URLs
         assert!(!is_special_key("[Memex](https://memex.tech)"));
         assert!(!is_special_key("Visit [our site](https://example.com)"));
-        
+
         // Multi-line markers (escaped)
         assert!(!is_special_key("First line\\nSecond line"));
     }
@@ -622,14 +643,14 @@ Co-Authored-By: Memex <noreply@memex.tech>"#;
     fn test_edge_cases() {
         // Control sequences that are too long should be text
         assert!(!is_special_key("C-very-long-sequence"));
-        
+
         // Multiple spaces indicate commands
         assert!(!is_special_key("command with multiple spaces"));
-        
+
         // Valid C-Space vs invalid space combinations
         assert!(is_special_key("C-Space"));
         assert!(!is_special_key("not valid space"));
-        
+
         // Whitespace characters as single chars
         assert!(!is_special_key(" ")); // Space char should use "Space" key name
         assert!(!is_special_key("\t")); // Tab char should use "Tab" key name
@@ -640,37 +661,45 @@ Co-Authored-By: Memex <noreply@memex.tech>"#;
         // Special keys should use parse_key
         let enter_result = smart_parse_key("Enter");
         let expected_enter = ht_core::api::stdio::parse_key("Enter".to_string());
-        assert_eq!(format!("{:?}", enter_result), format!("{:?}", expected_enter));
-        
+        assert_eq!(
+            format!("{:?}", enter_result),
+            format!("{:?}", expected_enter)
+        );
+
         // Control key
         let ctrl_c_result = smart_parse_key("C-c");
         let expected_ctrl_c = ht_core::api::stdio::parse_key("C-c".to_string());
-        assert_eq!(format!("{:?}", ctrl_c_result), format!("{:?}", expected_ctrl_c));
-        
+        assert_eq!(
+            format!("{:?}", ctrl_c_result),
+            format!("{:?}", expected_ctrl_c)
+        );
+
         // Text should use standard_key
         let text_result = smart_parse_key("hello world");
         let expected_text = ht_core::api::stdio::standard_key("hello world");
         assert_eq!(format!("{:?}", text_result), format!("{:?}", expected_text));
-        
+
         // Simple git command should use standard_key
         let git_result = smart_parse_key("git commit -m \"test\"");
         let expected_git = ht_core::api::stdio::standard_key("git commit -m \"test\"");
         assert_eq!(format!("{:?}", git_result), format!("{:?}", expected_git));
-        
+
         // Emoji string should use standard_key
         let emoji_result = smart_parse_key("🤖 Generated with [Memex](https://memex.tech)");
-        let expected_emoji = ht_core::api::stdio::standard_key("🤖 Generated with [Memex](https://memex.tech)");
-        assert_eq!(format!("{:?}", emoji_result), format!("{:?}", expected_emoji));
+        let expected_emoji =
+            ht_core::api::stdio::standard_key("🤖 Generated with [Memex](https://memex.tech)");
+        assert_eq!(
+            format!("{:?}", emoji_result),
+            format!("{:?}", expected_emoji)
+        );
     }
-
-
 
     #[test]
     fn test_complex_git_commit_integration() {
         // Test that complex git commits are processed as standard text (no special conversion)
         let complex_commit = "git commit -m \"Fix issue\\n\\n🤖 Generated with [Memex](https://memex.tech)\\nCo-Authored-By: Memex <noreply@memex.tech>\"";
         let result = smart_parse_key(complex_commit);
-        
+
         // Should be treated as standard key with original content passed through
         if let ht_core::command::InputSeq::Standard(cmd) = result {
             assert!(cmd.contains("git commit"));

@@ -1,7 +1,7 @@
 use crate::error::{HtMcpError, Result};
 use crate::ht_integration::SessionManager;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::info;
 
@@ -40,7 +40,7 @@ impl HtMcpServer {
     ) -> Result<serde_json::Value> {
         let call_id = self.call_counter.fetch_add(1, Ordering::SeqCst);
         info!("=== TOOL CALL #{} START: {} ===", call_id, tool_name);
-        
+
         let mut session_manager = self.session_manager.lock().await;
 
         match tool_name {
@@ -51,17 +51,26 @@ impl HtMcpServer {
             }
             "ht_send_keys" => {
                 // Debug: Log the raw arguments JSON
-                info!("CALL #{}: Raw ht_send_keys arguments: {}", call_id, serde_json::to_string_pretty(&arguments).unwrap_or_default());
-                
+                info!(
+                    "CALL #{}: Raw ht_send_keys arguments: {}",
+                    call_id,
+                    serde_json::to_string_pretty(&arguments).unwrap_or_default()
+                );
+
                 let args: crate::mcp::types::SendKeysArgs = serde_json::from_value(arguments)
                     .map_err(|e| HtMcpError::InvalidRequest(format!("Invalid arguments: {}", e)))?;
-                
+
                 // Debug: Log the parsed arguments
-                info!("CALL #{}: Parsed ht_send_keys args: sessionId={}, keys_count={}", call_id, args.session_id, args.keys.len());
+                info!(
+                    "CALL #{}: Parsed ht_send_keys args: sessionId={}, keys_count={}",
+                    call_id,
+                    args.session_id,
+                    args.keys.len()
+                );
                 for (i, key) in args.keys.iter().enumerate() {
                     info!("CALL #{}: keys[{}] = '{}'", call_id, i, key);
                 }
-                
+
                 let result = session_manager.send_keys(args).await;
                 info!("=== TOOL CALL #{} END ===", call_id);
                 result
