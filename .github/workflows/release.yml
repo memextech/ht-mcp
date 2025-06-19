@@ -209,8 +209,7 @@ jobs:
           # Create checksum
           shasum -a 256 $BINARY_NAME | sed "s/$BINARY_NAME/$ASSET_NAME/" > $ASSET_NAME.sha256
           
-          # Rename binary (remove destination first for re-runs)
-          rm -f $ASSET_NAME
+          # Rename binary
           mv $BINARY_NAME $ASSET_NAME
 
       - name: Prepare binary for upload (Windows)
