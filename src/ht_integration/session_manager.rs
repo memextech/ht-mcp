@@ -207,11 +207,11 @@ impl SessionManager {
             .get(&args.session_id)
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
-        // Convert keys to InputSeq format using HT's native key parsing
+        // Convert keys to InputSeq format using intelligent key parsing
         let input_seqs: Vec<ht_core::command::InputSeq> = args
             .keys
             .iter()
-            .map(|key| ht_core::api::stdio::parse_key(key.clone()))
+            .map(|key| smart_parse_key(key))
             .collect();
 
         // Send keys via the command channel
@@ -358,5 +358,93 @@ fn create_winsize(cols: u16, rows: u16) -> Winsize {
             ws_col: cols,
             ws_row: rows,
         }
+    }
+}
+
+/// Intelligently parse a key string as either a special key or literal text
+fn smart_parse_key(key: &str) -> ht_core::command::InputSeq {
+    let is_special = is_special_key(key);
+    info!("smart_parse_key: '{}' -> is_special: {}", key, is_special);
+    
+    if is_special {
+        ht_core::api::stdio::parse_key(key.to_string())
+    } else {
+        ht_core::api::stdio::standard_key(key)
+    }
+}
+
+/// Determine if a string represents a special key vs literal text
+fn is_special_key(key: &str) -> bool {
+    // Long strings are definitely text, not keys
+    if key.len() > 20 {
+        return false;
+    }
+    
+    // Strings with spaces are usually text (except for special cases)
+    if key.contains(' ') && !matches!(key, "C-Space" | "Space") {
+        return false;
+    }
+    
+    // Check if it matches known key patterns
+    matches!(key,
+        // Basic keys
+        "Enter" | "Tab" | "Space" | "Escape" |
+        // Arrow keys
+        "Left" | "Right" | "Up" | "Down" |
+        // Function keys
+        "F1" | "F2" | "F3" | "F4" | "F5" | "F6" | "F7" | "F8" | "F9" | "F10" | "F11" | "F12" |
+        // Home/End/Page keys
+        "Home" | "End" | "PageUp" | "PageDown"
+    ) || 
+    // Single characters (likely literal keys)
+    key.len() == 1 ||
+    // Control sequences
+    key.starts_with("C-") || key.starts_with("^") ||
+    // Alt sequences
+    key.starts_with("A-") ||
+    // Shift sequences  
+    key.starts_with("S-")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_special_key_detection() {
+        // Special keys should be parsed normally
+        assert!(is_special_key("Enter"));
+        assert!(is_special_key("Tab"));
+        assert!(is_special_key("C-x"));
+        assert!(is_special_key("C-c"));
+        assert!(is_special_key("^c"));
+        assert!(is_special_key("A-x"));
+        assert!(is_special_key("S-Left"));
+        assert!(is_special_key("F1"));
+        assert!(is_special_key("Space"));
+        assert!(is_special_key("C-Space"));
+        assert!(is_special_key("a"));
+        assert!(is_special_key("1"));
+        
+        // Text content should NOT be treated as special keys
+        assert!(!is_special_key("hello world"));
+        assert!(!is_special_key("git commit -m"));
+        assert!(!is_special_key("🤖 Generated with [Memex](https://memex.tech)"));
+        assert!(!is_special_key("Co-Authored-By: Memex <noreply@memex.tech>"));
+        assert!(!is_special_key("This is a very long string that is definitely text content"));
+        assert!(!is_special_key("echo 'hello world'"));
+    }
+
+    #[test]
+    fn test_smart_parse_key() {
+        // Special keys should use parse_key
+        let enter_result = smart_parse_key("Enter");
+        let expected_enter = ht_core::api::stdio::parse_key("Enter".to_string());
+        assert_eq!(format!("{:?}", enter_result), format!("{:?}", expected_enter));
+        
+        // Text should use standard_key
+        let text_result = smart_parse_key("hello world");
+        let expected_text = ht_core::api::stdio::standard_key("hello world");
+        assert_eq!(format!("{:?}", text_result), format!("{:?}", expected_text));
     }
 }

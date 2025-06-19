@@ -1,0 +1,7 @@
+Test multiline commit with emoji
+
+🤖 Generated with [Memex](https://memex.tech)
+Co-Authored-By: Memex <noreply@memex.tech>
+
+Issue: Terminal complex message handling
+Context: Investigating commit message problems with ht
