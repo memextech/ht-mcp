@@ -225,8 +225,13 @@ jobs:
           $hashString = $hash.Hash.ToLower() + "  " + $ASSET_NAME
           $hashString | Out-File -Encoding ASCII "$ASSET_NAME.sha256"
           
-          # Rename binary (-Force overwrites existing file for re-runs)
-          Rename-Item $BINARY_NAME $ASSET_NAME -Force
+          # Remove destination file if it exists (for re-runs)
+          if (Test-Path $ASSET_NAME) {
+            Remove-Item $ASSET_NAME -Force
+          }
+          
+          # Rename binary
+          Rename-Item $BINARY_NAME $ASSET_NAME
 
       - name: Upload Release Assets (Unix)
         if: runner.os != 'Windows'
