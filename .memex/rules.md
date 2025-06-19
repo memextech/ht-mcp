@@ -94,6 +94,39 @@
 4. **Platform Issues**: Focus on Unix platforms (Ubuntu/macOS)
 5. **Submodule Issues**: Ensure pointing to correct fork (memextech/ht.git) and that commits are pushed to remote
 
+### Testing ht-mcp Server
+To test the ht-mcp server functionality:
+
+1. **Build the server**: `cargo build --release`
+2. **Update MCP server path**: Use `mcp_manage_server` to point to the built binary:
+   ```
+   runtime: /path/to/project/target/release/ht-mcp
+   args: []
+   ```
+3. **Test functionality**: Create new session and test commands directly through MCP tools:
+   - `ht_create_session` to create session
+   - `ht_execute_command` to run commands 
+   - `ht_close_session` to clean up
+
+This approach allows testing the latest code changes without complex Python scripts or separate test harnesses.
+
+### Testing Complex Git Commits
+**Proven working**: Complex git commit messages with emoji, multiline content, URLs, and Co-Authored-By metadata work correctly through the MCP server after removing file-based workarounds.
+
+**Test pattern**: 
+```bash
+git commit -m "🚀 Add proof of concept feature
+
+This is a multiline commit message with:
+- Emoji 😀 and special characters
+- Long description text  
+- URLs: https://github.com/memextech/ht-mcp
+
+Co-Authored-By: Memex <noreply@memex.tech>"
+```
+
+Result: No string corruption, proper commit creation, all content preserved.
+
 ### Key Patterns
 ```rust
 // Conditional test compilation
@@ -147,6 +180,14 @@ mod tests {
 - ✅ **FIXED: Enter key for interactive CLI tools (v0.1.2)**
 - ✅ **REMOVED: Dead code from native webserver approach**
 - ✅ **ADDED: Comprehensive test coverage for key parsing**
+- ✅ **FIXED: Release workflow duplicate release creation (v0.1.2)**
+- ✅ **REMOVED: File-based git commit workaround - complex messages work directly**
+
+### Release Workflow Duplicate Creation Fix
+- **Issue**: Release workflow failed when release already existed with "Release.tag_name already exists" error
+- **Root Cause**: Multiple tag pushes triggered duplicate release creation attempts  
+- **Solution**: Added check for existing release before creation, reuse existing release ID for binary builds
+- **Result**: Release workflow now handles existing releases gracefully and continues with binary artifact uploads
 
 ### CTRL+KEY Sequence Bug Fix
 - **Issue**: `C-c`, `C-x` format keys were sent as literal text instead of control characters
