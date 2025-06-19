@@ -143,6 +143,13 @@ mod tests {
 - ✅ **FIXED: Enter key for interactive CLI tools (v0.1.2)**
 - ✅ **REMOVED: Dead code from native webserver approach**
 - ✅ **ADDED: Comprehensive test coverage for key parsing**
+- ✅ **FIXED: Release workflow duplicate release creation (v0.1.2)**
+
+### Release Workflow Duplicate Creation Fix
+- **Issue**: Release workflow failed when release already existed with "Release.tag_name already exists" error
+- **Root Cause**: Multiple tag pushes triggered duplicate release creation attempts  
+- **Solution**: Added check for existing release before creation, reuse existing release ID for binary builds
+- **Result**: Release workflow now handles existing releases gracefully and continues with binary artifact uploads
 
 ### CTRL+KEY Sequence Bug Fix
 - **Issue**: `C-c`, `C-x` format keys were sent as literal text instead of control characters
