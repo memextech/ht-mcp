@@ -125,8 +125,12 @@ mod tests {
 5. **Tag**: Create git tag with `git tag v{version}` (e.g., `git tag v0.1.3`)
 6. **Push**: Push both commits and tags with `git push origin main --tags`
 7. **GitHub Release**: Tag push triggers automated release workflow
+8. **Publish Release**: After workflow completes, manually publish the draft release on GitHub
+9. **Homebrew Update**: Publishing the release automatically triggers homebrew-tap update workflow
 
 **Critical**: Always run `cargo update` after version bump - CI uses `--locked` flag and will fail if Cargo.lock is outdated
+
+**Note**: Release workflow creates a draft release - you must manually publish it. Once published, homebrew-tap is automatically updated via workflow trigger.
 
 ## Recent Achievements
 - ✅ Fixed all CI pipeline issues (including formatting requirements)
