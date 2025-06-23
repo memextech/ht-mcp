@@ -1,6 +1,10 @@
+#[cfg(not(ci))]
 use serde_json::{json, Value};
+#[cfg(not(ci))]
 use std::io::{BufRead, BufReader, Write};
+#[cfg(not(ci))]
 use std::process::{Command, Stdio};
+#[cfg(not(ci))]
 use std::time::Duration;
 
 #[tokio::test]
