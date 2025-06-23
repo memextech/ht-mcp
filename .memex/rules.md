@@ -184,6 +184,20 @@ mod tests {
 - ✅ **REMOVED: File-based git commit workaround - complex messages work directly**
 - ✅ **FIXED: File descriptor double-close bug causing server crashes during session cleanup**
 - ✅ **RESOLVED: Integration test failures with robust end-to-end validation**
+- ✅ **IMPLEMENTED: Comprehensive server metadata reporting per MCP specification**
+
+### Server Metadata Implementation (LATEST)
+- **Feature**: Full MCP-compliant serverInfo reporting during initialization 
+- **Enhanced ServerInfo**: Added `title` field to complement existing `name` and `version`
+- **Centralized Metadata**: Updated initialization handler to use HtMcpServer.server_info()
+- **Standards Compliance**: Follows MCP specification 2025-06-18 serverInfo requirements
+- **Testing**: Added comprehensive test coverage for metadata structure and end-to-end validation
+- **Server Reports**:
+  - `name`: "ht-mcp" (identifier)  
+  - `title`: "Headless Terminal MCP Server" (human-readable display name)
+  - `version`: from Cargo.toml (currently 0.1.3)
+  - `protocolVersion`: "2024-11-05"
+- **Integration**: Includes Python test script (`test_server_metadata.py`) for validation
 
 ### File Descriptor Double-Close Bug Fix (CRITICAL)
 - **Issue**: `fatal runtime error: IO Safety violation: owned file descriptor already closed` during session cleanup
