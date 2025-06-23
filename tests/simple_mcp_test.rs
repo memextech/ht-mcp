@@ -73,8 +73,9 @@ async fn test_simple_mcp_initialization() {
         .unwrap()
         .contains("ht-mcp"));
 
-    // Clean up
+    // Clean up - kill and wait to prevent zombie processes
     let _ = child.kill();
+    let _ = child.wait();
 
     println!("Test passed!");
 }
