@@ -178,6 +178,15 @@ mod tests {
 - ✅ **ADDED: Comprehensive test coverage for key parsing**
 - ✅ **FIXED: Release workflow duplicate release creation (v0.1.2)**
 - ✅ **REMOVED: File-based git commit workaround - complex messages work directly**
+- ✅ **FIXED: File descriptor double-close bug causing server crashes during session cleanup**
+- ✅ **RESOLVED: Integration test failures with robust end-to-end validation**
+
+### File Descriptor Double-Close Bug Fix (CRITICAL)
+- **Issue**: `fatal runtime error: IO Safety violation: owned file descriptor already closed` during session cleanup
+- **Root Cause**: Both `AsyncFd` and `File` objects attempted to close the same file descriptor in `ht-core/src/pty.rs`
+- **Solution**: Single ownership model using `ManuallyDrop` wrapper to prevent double-close
+- **Impact**: Eliminates server crashes during `ht_close_session` operations, enables clean session lifecycle
+- **Testing**: All 13 tests now pass without workarounds, end-to-end workflow validated
 
 ### Release Workflow Duplicate Creation Fix
 - **Issue**: Release workflow failed when release already existed with "Release.tag_name already exists" error
@@ -216,11 +225,13 @@ mod tests {
 - **Response Format**: Matches TypeScript implementation exactly ✅ 
 - **Text Formatting**: Human-readable with markdown code blocks ✅
 - **Web Server Integration**: Working with emoji indicators ✅
+- **Session Management**: Robust session lifecycle without crashes ✅
+- **Integration Tests**: All 13 tests passing end-to-end ✅
 - **CI Status**: All workflows passing ✅
 - **Documentation**: Complete overhaul for v0.1.0 release ✅
 - **License**: Updated to MIT with correct copyright ✅
 - **Repository**: Clean and production-ready ✅
-- **Status**: **PRODUCTION READY** - Version 0.1.0 released
+- **Status**: **PRODUCTION READY** - Version 0.1.3 stable with critical fixes
 
 ## Key Learnings
 1. **Platform Focus**: ht-mcp is inherently Unix/Linux focused
