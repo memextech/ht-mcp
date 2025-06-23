@@ -134,58 +134,12 @@ impl McpClient {
 
         eprintln!("DEBUG: Calling tool {} with args: {}", tool_name, arguments);
         self.send_message(msg);
-        
-        // For close_session calls, the server may terminate due to a known file descriptor cleanup issue
-        if tool_name == "ht_close_session" {
-            match self.try_read_response() {
-                Ok(response) => {
-                    eprintln!("DEBUG: Tool {} response received", tool_name);
-                    response
-                }
-                Err(e) => {
-                    eprintln!("DEBUG: Server terminated during {} call (expected for close_session): {}", tool_name, e);
-                    // Return a synthetic success response for close_session
-                    json!({
-                        "jsonrpc": "2.0",
-                        "id": self.message_id,
-                        "result": {
-                            "content": [{
-                                "type": "text",
-                                "text": "Session closed successfully (server terminated due to known file descriptor cleanup issue)"
-                            }]
-                        }
-                    })
-                }
-            }
-        } else {
-            let response = self.read_response();
-            eprintln!("DEBUG: Tool {} response received", tool_name);
-            response
-        }
+        let response = self.read_response();
+        eprintln!("DEBUG: Tool {} response received", tool_name);
+        response
     }
     
-    fn try_read_response(&mut self) -> Result<Value, String> {
-        // Check if the child process is still alive
-        if let Some(exit_status) = self.child.try_wait().expect("Failed to check child status") {
-            return Err(format!("Server process terminated with exit code: {:?}", exit_status));
-        }
-        
-        let mut line = String::new();
-        match self.reader.read_line(&mut line) {
-            Ok(0) => Err("EOF reached while reading response".to_string()),
-            Ok(_) => {
-                let trimmed = line.trim();
-                eprintln!("DEBUG: Read line: {:?}", trimmed);
-                
-                if trimmed.is_empty() {
-                    Err("Empty line received from server".to_string())
-                } else {
-                    serde_json::from_str(trimmed).map_err(|e| format!("Failed to parse JSON: {}", e))
-                }
-            }
-            Err(e) => Err(format!("IO error: {}", e))
-        }
-    }
+
 
     fn extract_text_response(&self, response: &Value) -> String {
         response["result"]["content"][0]["text"]
@@ -299,21 +253,13 @@ async fn test_complete_terminal_workflow() {
     eprintln!("Session close response: {}", close_text);
 
     // Test 7: Verify session is closed
-    // Note: Due to known issue with file descriptor cleanup, the server may terminate
-    // after closing a session. We handle this gracefully in the call_tool function.
     eprintln!("=== Test 7: Verify session is closed ===");
-    
-    // If the server is still running, verify the session is closed
-    if client.child.try_wait().unwrap().is_none() {
-        let final_list = client.call_tool("ht_list_sessions", json!({}));
-        let final_text = client.extract_text_response(&final_list);
-        assert!(
-            final_text.contains("Active HT Sessions (0)") || final_text.contains("No active sessions")
-        );
-        eprintln!("Session list verification successful: {}", final_text);
-    } else {
-        eprintln!("Server terminated after session close (this is expected due to known file descriptor cleanup issue)");
-    }
+    let final_list = client.call_tool("ht_list_sessions", json!({}));
+    let final_text = client.extract_text_response(&final_list);
+    assert!(
+        final_text.contains("Active HT Sessions (0)") || final_text.contains("No active sessions")
+    );
+    eprintln!("Session list verification successful: {}", final_text);
     
     eprintln!("=== Test completed successfully! ===");
 }

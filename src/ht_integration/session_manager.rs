@@ -341,11 +341,7 @@ impl SessionManager {
             .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
 
         // Close the command channel to trigger session shutdown
-        // Use explicit drop to ensure proper cleanup
-        std::mem::drop(session.command_tx);
-        
-        // Give the session task a moment to clean up
-        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        drop(session.command_tx);
 
         info!("Closed session {}", args.session_id);
 
