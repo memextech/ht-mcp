@@ -138,6 +138,7 @@ async fn handle_request(server: &mut HtMcpServer, request: Value) -> Value {
     match method {
         "initialize" => {
             info!("Handling initialize request");
+            let server_info = server.server_info();
             json!({
                 "jsonrpc": "2.0",
                 "id": id,
@@ -147,8 +148,9 @@ async fn handle_request(server: &mut HtMcpServer, request: Value) -> Value {
                         "tools": {}
                     },
                     "serverInfo": {
-                        "name": "ht-mcp-server",
-                        "version": env!("CARGO_PKG_VERSION")
+                        "name": server_info.name,
+                        "title": server_info.title,
+                        "version": server_info.version
                     }
                 }
             })

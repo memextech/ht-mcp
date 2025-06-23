@@ -14,6 +14,7 @@ pub struct HtMcpServer {
 #[derive(Debug, Clone)]
 pub struct ServerInfo {
     pub name: String,
+    pub title: String,
     pub version: String,
 }
 
@@ -22,7 +23,8 @@ impl HtMcpServer {
         Self {
             session_manager: Arc::new(Mutex::new(SessionManager::new())),
             server_info: ServerInfo {
-                name: "ht-mcp-server".to_string(),
+                name: "ht-mcp".to_string(),
+                title: "Headless Terminal MCP Server".to_string(),
                 version: env!("CARGO_PKG_VERSION").to_string(),
             },
             call_counter: AtomicU64::new(0),
