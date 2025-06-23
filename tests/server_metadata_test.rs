@@ -1,6 +1,6 @@
 use serde_json::json;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
-use tokio::io::{AsyncWriteExt, AsyncBufReadExt, BufReader};
 
 #[tokio::test]
 #[cfg(not(ci))] // Skip in CI environments
@@ -53,7 +53,7 @@ async fn test_server_metadata_reporting() {
     // Verify server metadata
     let server_info = &response["result"]["serverInfo"];
     assert!(server_info.is_object());
-    
+
     // Check required fields
     assert_eq!(server_info["name"], "ht-mcp");
     assert_eq!(server_info["title"], "Headless Terminal MCP Server");
@@ -74,10 +74,10 @@ async fn test_server_metadata_reporting() {
 fn test_server_info_structure() {
     // Test that the ServerInfo structure has all required fields
     use ht_mcp::mcp::server::HtMcpServer;
-    
+
     let server = HtMcpServer::new();
     let info = server.server_info();
-    
+
     // Verify fields
     assert_eq!(info.name, "ht-mcp");
     assert_eq!(info.title, "Headless Terminal MCP Server");
