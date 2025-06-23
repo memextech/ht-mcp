@@ -19,11 +19,14 @@ impl McpClient {
             .args(["build"])
             .output()
             .expect("Failed to build ht-mcp");
-        
+
         if !build_output.status.success() {
-            panic!("Failed to build ht-mcp: {}", String::from_utf8_lossy(&build_output.stderr));
+            panic!(
+                "Failed to build ht-mcp: {}",
+                String::from_utf8_lossy(&build_output.stderr)
+            );
         }
-        
+
         eprintln!("DEBUG: Starting ht-mcp server from binary");
         let mut child = Command::new("./target/debug/ht-mcp")
             .stdin(Stdio::piped())
@@ -47,8 +50,15 @@ impl McpClient {
         std::thread::sleep(Duration::from_millis(100));
 
         // Check if child is still running
-        if let Some(exit_status) = client.child.try_wait().expect("Failed to check child status") {
-            panic!("Server terminated during startup with exit code: {:?}", exit_status);
+        if let Some(exit_status) = client
+            .child
+            .try_wait()
+            .expect("Failed to check child status")
+        {
+            panic!(
+                "Server terminated during startup with exit code: {:?}",
+                exit_status
+            );
         }
 
         // Initialize the server
@@ -58,7 +68,7 @@ impl McpClient {
 
     fn initialize(&mut self) {
         eprintln!("DEBUG: Starting initialization");
-        
+
         // Send initialize
         let init_msg = json!({
             "jsonrpc": "2.0",
@@ -101,23 +111,29 @@ impl McpClient {
     fn read_response(&mut self) -> Value {
         // Check if the child process is still alive
         if let Some(exit_status) = self.child.try_wait().expect("Failed to check child status") {
-            panic!("Server process terminated with exit code: {:?}", exit_status);
+            panic!(
+                "Server process terminated with exit code: {:?}",
+                exit_status
+            );
         }
-        
+
         let mut line = String::new();
-        let bytes_read = self.reader.read_line(&mut line).expect("Failed to read line");
-        
+        let bytes_read = self
+            .reader
+            .read_line(&mut line)
+            .expect("Failed to read line");
+
         if bytes_read == 0 {
             panic!("EOF reached while reading response - server may have terminated");
         }
-        
+
         let trimmed = line.trim();
         eprintln!("DEBUG: Read line: {:?}", trimmed);
-        
+
         if trimmed.is_empty() {
             panic!("Empty line received from server");
         }
-        
+
         serde_json::from_str(trimmed).expect("Failed to parse JSON response")
     }
 
@@ -138,8 +154,6 @@ impl McpClient {
         eprintln!("DEBUG: Tool {} response received", tool_name);
         response
     }
-    
-
 
     fn extract_text_response(&self, response: &Value) -> String {
         response["result"]["content"][0]["text"]
@@ -260,7 +274,7 @@ async fn test_complete_terminal_workflow() {
         final_text.contains("Active HT Sessions (0)") || final_text.contains("No active sessions")
     );
     eprintln!("Session list verification successful: {}", final_text);
-    
+
     eprintln!("=== Test completed successfully! ===");
 }
 
