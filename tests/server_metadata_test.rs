@@ -43,7 +43,7 @@ async fn test_server_metadata_reporting() {
     let mut response_line = String::new();
     reader.read_line(&mut response_line).await.unwrap();
 
-    let response: serde_json::Value = serde_json::from_str(&response_line.trim()).unwrap();
+    let response: serde_json::Value = serde_json::from_str(response_line.trim()).unwrap();
 
     // Verify response structure
     assert_eq!(response["jsonrpc"], "2.0");
