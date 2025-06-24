@@ -77,9 +77,16 @@
    - `cargo fmt --all -- --check` (verify no formatting issues)
    - `cargo clippy --all-targets` (check linting)
    - `cargo build` (verify compilation)
-4. All CI must pass before merging
-5. Integration tests are disabled in CI but work locally
-6. Use `shell: bash` for cross-platform CI commands
+4. **MANDATORY PRE-PUSH VALIDATION** - Run full CI equivalent tests locally before pushing to prevent CI failures:
+   - `cargo fmt --all -- --check` (formatting compliance)
+   - `cargo clippy --all-targets --all-features -- -D warnings` (strict linting)
+   - `cargo build --verbose` (debug build)
+   - `RUSTFLAGS="--cfg ci" cargo test --verbose` (CI test environment)
+   - `cargo build --release` (release build)
+5. **CRITICAL**: Always validate locally first - CI failures waste time and create noise
+6. All CI must pass before merging
+7. Integration tests are disabled in CI but work locally
+8. Use `shell: bash` for cross-platform CI commands
 
 ### Code Quality Requirements
 - **Formatting**: Run `cargo fmt --all` before every commit
@@ -184,6 +191,20 @@ mod tests {
 - ✅ **REMOVED: File-based git commit workaround - complex messages work directly**
 - ✅ **FIXED: File descriptor double-close bug causing server crashes during session cleanup**
 - ✅ **RESOLVED: Integration test failures with robust end-to-end validation**
+- ✅ **IMPLEMENTED: Comprehensive server metadata reporting per MCP specification**
+
+### Server Metadata Implementation (LATEST)
+- **Feature**: Full MCP-compliant serverInfo reporting during initialization 
+- **Enhanced ServerInfo**: Added `title` field to complement existing `name` and `version`
+- **Centralized Metadata**: Updated initialization handler to use HtMcpServer.server_info()
+- **Standards Compliance**: Follows MCP specification 2025-06-18 serverInfo requirements
+- **Testing**: Added comprehensive test coverage for metadata structure and end-to-end validation
+- **Server Reports**:
+  - `name`: "ht-mcp" (identifier)  
+  - `title`: "Headless Terminal MCP Server" (human-readable display name)
+  - `version`: from Cargo.toml (currently 0.1.3)
+  - `protocolVersion`: "2024-11-05"
+- **Integration**: Includes Python test script (`test_server_metadata.py`) for validation
 
 ### File Descriptor Double-Close Bug Fix (CRITICAL)
 - **Issue**: `fatal runtime error: IO Safety violation: owned file descriptor already closed` during session cleanup
