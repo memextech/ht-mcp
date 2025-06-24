@@ -77,9 +77,16 @@
    - `cargo fmt --all -- --check` (verify no formatting issues)
    - `cargo clippy --all-targets` (check linting)
    - `cargo build` (verify compilation)
-4. All CI must pass before merging
-5. Integration tests are disabled in CI but work locally
-6. Use `shell: bash` for cross-platform CI commands
+4. **MANDATORY PRE-PUSH VALIDATION** - Run full CI equivalent tests locally before pushing to prevent CI failures:
+   - `cargo fmt --all -- --check` (formatting compliance)
+   - `cargo clippy --all-targets --all-features -- -D warnings` (strict linting)
+   - `cargo build --verbose` (debug build)
+   - `RUSTFLAGS="--cfg ci" cargo test --verbose` (CI test environment)
+   - `cargo build --release` (release build)
+5. **CRITICAL**: Always validate locally first - CI failures waste time and create noise
+6. All CI must pass before merging
+7. Integration tests are disabled in CI but work locally
+8. Use `shell: bash` for cross-platform CI commands
 
 ### Code Quality Requirements
 - **Formatting**: Run `cargo fmt --all` before every commit
