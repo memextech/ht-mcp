@@ -225,3 +225,64 @@ fn format_close_session_response(result: &serde_json::Value) -> String {
     let session_id = result["sessionId"].as_str().unwrap_or("unknown");
     format!("Session {} closed successfully.", session_id)
 }
+
+#[test]
+fn test_resize_response_format() {
+    let mock_response = json!({
+        "sessionId": "resize-session-123",
+        "cols": 120,
+        "rows": 40
+    });
+
+    let formatted = format_resize_response(&mock_response);
+
+    assert!(formatted.contains("Terminal resized successfully!"));
+    assert!(formatted.contains("Session: resize-session-123"));
+    assert!(formatted.contains("New size: 120x40 (columns x rows)"));
+}
+
+#[test]
+fn test_resize_response_format_edge_cases() {
+    // Test minimum size
+    let min_response = json!({
+        "sessionId": "min-session",
+        "cols": 1,
+        "rows": 1
+    });
+
+    let min_formatted = format_resize_response(&min_response);
+    assert!(min_formatted.contains("Terminal resized successfully!"));
+    assert!(min_formatted.contains("1x1"));
+
+    // Test maximum size
+    let max_response = json!({
+        "sessionId": "max-session",
+        "cols": 1000,
+        "rows": 1000
+    });
+
+    let max_formatted = format_resize_response(&max_response);
+    assert!(max_formatted.contains("Terminal resized successfully!"));
+    assert!(max_formatted.contains("1000x1000"));
+
+    // Test with unknown session ID
+    let unknown_response = json!({
+        "cols": 80,
+        "rows": 24
+    });
+
+    let unknown_formatted = format_resize_response(&unknown_response);
+    assert!(unknown_formatted.contains("Session: unknown"));
+    assert!(unknown_formatted.contains("80x24"));
+}
+
+fn format_resize_response(result: &serde_json::Value) -> String {
+    let session_id = result["sessionId"].as_str().unwrap_or("unknown");
+    let cols = result["cols"].as_u64().unwrap_or(0);
+    let rows = result["rows"].as_u64().unwrap_or(0);
+
+    format!(
+        "Terminal resized successfully!\n\nSession: {}\nNew size: {}x{} (columns x rows)",
+        session_id, cols, rows
+    )
+}

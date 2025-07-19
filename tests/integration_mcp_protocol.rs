@@ -74,7 +74,7 @@ async fn test_mcp_protocol_basic_flow() {
     let tools = &tools_response["result"]["tools"];
     assert!(tools.is_array());
 
-    // Verify all 6 tools are present
+    // Verify all 7 tools are present
     let tool_names: Vec<&str> = tools
         .as_array()
         .unwrap()
@@ -88,6 +88,7 @@ async fn test_mcp_protocol_basic_flow() {
     assert!(tool_names.contains(&"ht_execute_command"));
     assert!(tool_names.contains(&"ht_list_sessions"));
     assert!(tool_names.contains(&"ht_close_session"));
+    assert!(tool_names.contains(&"ht_resize"));
 
     // Clean up
     child.kill().expect("Failed to kill child process");
@@ -157,6 +158,106 @@ async fn test_create_session_tool() {
         .as_str()
         .unwrap()
         .contains("Session ID:"));
+
+    // Clean up
+    child.kill().expect("Failed to kill child process");
+}
+
+#[tokio::test]
+async fn test_resize_tool() {
+    #[allow(clippy::zombie_processes)]
+    let mut child = Command::new("cargo")
+        .args(["run", "--"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("Failed to start ht-mcp server");
+
+    let mut stdin = child.stdin.take().expect("Failed to get stdin");
+    let stdout = child.stdout.take().expect("Failed to get stdout");
+    let mut reader = BufReader::new(stdout);
+
+    // Initialize first
+    let init_and_notify = |stdin: &mut std::process::ChildStdin| {
+        let init = json!({
+            "jsonrpc": "2.0", "id": 1, "method": "initialize",
+            "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test", "version": "1.0"}}
+        });
+        let msg = serde_json::to_string(&init).unwrap() + "\n";
+        stdin.write_all(msg.as_bytes()).unwrap();
+        stdin.flush().unwrap();
+
+        let notify = json!({"jsonrpc": "2.0", "method": "notifications/initialized"});
+        let msg = serde_json::to_string(&notify).unwrap() + "\n";
+        stdin.write_all(msg.as_bytes()).unwrap();
+        stdin.flush().unwrap();
+    };
+
+    init_and_notify(&mut stdin);
+
+    // Read init response
+    let mut line = String::new();
+    reader.read_line(&mut line).unwrap();
+
+    // First create a session
+    let create_session = json!({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/call",
+        "params": {
+            "name": "ht_create_session",
+            "arguments": {
+                "command": ["bash"],
+                "enableWebServer": false
+            }
+        }
+    });
+
+    let msg = serde_json::to_string(&create_session).unwrap() + "\n";
+    stdin.write_all(msg.as_bytes()).unwrap();
+    stdin.flush().unwrap();
+
+    let mut response_line = String::new();
+    reader.read_line(&mut response_line).unwrap();
+    let create_response: Value = serde_json::from_str(response_line.trim()).unwrap();
+
+    // Extract session ID from create response
+    let session_text = create_response["result"]["content"][0]["text"].as_str().unwrap();
+    let session_id = session_text
+        .lines()
+        .find(|line| line.starts_with("Session ID:"))
+        .and_then(|line| line.split(": ").nth(1))
+        .unwrap();
+
+    // Test resize tool
+    let resize_tool = json!({
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "tools/call",
+        "params": {
+            "name": "ht_resize",
+            "arguments": {
+                "sessionId": session_id,
+                "cols": 100,
+                "rows": 30
+            }
+        }
+    });
+
+    let msg = serde_json::to_string(&resize_tool).unwrap() + "\n";
+    stdin.write_all(msg.as_bytes()).unwrap();
+    stdin.flush().unwrap();
+
+    let mut resize_response_line = String::new();
+    reader.read_line(&mut resize_response_line).unwrap();
+    let resize_response: Value = serde_json::from_str(resize_response_line.trim()).unwrap();
+
+    assert_eq!(resize_response["id"], 3);
+    assert!(resize_response["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap()
+        .contains("Terminal resized successfully"));
 
     // Clean up
     child.kill().expect("Failed to kill child process");
