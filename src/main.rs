@@ -330,6 +330,15 @@ fn format_tool_response(tool_name: &str, result: &serde_json::Value) -> String {
             let session_id = result["sessionId"].as_str().unwrap_or("unknown");
             format!("Session {} closed successfully.", session_id)
         }
+        "ht_resize" => {
+            let session_id = result["sessionId"].as_str().unwrap_or("unknown");
+            let cols = result["cols"].as_u64().unwrap_or(0);
+            let rows = result["rows"].as_u64().unwrap_or(0);
+            format!(
+                "Terminal resized successfully!\n\nSession: {}\nNew size: {}x{} (columns x rows)",
+                session_id, cols, rows
+            )
+        }
         _ => {
             // Fallback to JSON pretty print for unknown tools
             serde_json::to_string_pretty(result)

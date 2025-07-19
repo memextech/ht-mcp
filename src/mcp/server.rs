@@ -95,6 +95,11 @@ impl HtMcpServer {
                 })?;
                 session_manager.close_session(args).await
             }
+            "ht_resize" => {
+                let args: crate::mcp::types::ResizeArgs = serde_json::from_value(arguments)
+                    .map_err(|e| HtMcpError::InvalidRequest(format!("Invalid arguments: {}", e)))?;
+                session_manager.resize_session(args).await
+            }
             _ => Err(HtMcpError::InvalidRequest(format!(
                 "Unknown tool: {}",
                 tool_name

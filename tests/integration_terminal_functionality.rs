@@ -235,6 +235,21 @@ mod integration_tests {
         // Wait for command to execute
         tokio::time::sleep(Duration::from_millis(1000)).await;
 
+        // Test 3.5: Resize terminal
+        eprintln!("=== Test 3.5: Resize terminal ===");
+        let resize_response = client.call_tool(
+            "ht_resize",
+            json!({
+                "sessionId": session_id,
+                "cols": 100,
+                "rows": 30
+            }),
+        );
+        let resize_text = client.extract_text_response(&resize_response);
+        assert!(resize_text.contains("Terminal resized successfully"));
+        assert!(resize_text.contains(&session_id));
+        assert!(resize_text.contains("100x30"));
+
         // Test 4: Take snapshot
         eprintln!("=== Test 4: Take snapshot ===");
         let snapshot_response = client.call_tool(
@@ -341,6 +356,19 @@ mod integration_tests {
         );
 
         assert!(missing_params.get("error").is_some());
+
+        // Test 3: Invalid resize with non-existent session
+        let invalid_resize = client.call_tool(
+            "ht_resize",
+            json!({
+                "sessionId": "invalid-session-id",
+                "cols": 80,
+                "rows": 24
+            }),
+        );
+
+        // Should return error
+        assert!(invalid_resize.get("error").is_some());
     }
 
     #[tokio::test]
@@ -371,6 +399,10 @@ mod integration_tests {
                 "ht_execute_command",
                 json!({"sessionId": &session_id, "command": "echo test"}),
             ),
+            (
+                "ht_resize",
+                json!({"sessionId": &session_id, "cols": 80, "rows": 24}),
+            ),
         ];
 
         for (tool_name, args) in tests {
@@ -389,6 +421,118 @@ mod integration_tests {
             assert!(!text.starts_with('{')); // Should not be JSON
             assert!(!text.starts_with('[')); // Should not be JSON array
         }
+
+        // Clean up
+        client.call_tool("ht_close_session", json!({"sessionId": session_id}));
+    }
+
+    #[tokio::test]
+    #[cfg(not(ci))]
+    async fn test_resize_validation() {
+        let mut client = McpClient::new();
+
+        // Create session first
+        let create_response = client.call_tool(
+            "ht_create_session",
+            json!({
+                "command": ["bash"],
+                "enableWebServer": false
+            }),
+        );
+        let session_id = client.extract_session_id(&create_response);
+
+        // Test 1: Valid resize
+        let valid_resize = client.call_tool(
+            "ht_resize",
+            json!({
+                "sessionId": session_id,
+                "cols": 120,
+                "rows": 40
+            }),
+        );
+        let response_text = client.extract_text_response(&valid_resize);
+        assert!(response_text.contains("Terminal resized successfully"));
+        assert!(response_text.contains("120x40"));
+
+        // Test 2: Edge case - minimum valid size
+        let min_resize = client.call_tool(
+            "ht_resize",
+            json!({
+                "sessionId": session_id,
+                "cols": 1,
+                "rows": 1
+            }),
+        );
+        let min_text = client.extract_text_response(&min_resize);
+        assert!(min_text.contains("Terminal resized successfully"));
+        assert!(min_text.contains("1x1"));
+
+        // Test 3: Edge case - maximum valid size
+        let max_resize = client.call_tool(
+            "ht_resize",
+            json!({
+                "sessionId": session_id,
+                "cols": 1000,
+                "rows": 1000
+            }),
+        );
+        let max_text = client.extract_text_response(&max_resize);
+        assert!(max_text.contains("Terminal resized successfully"));
+        assert!(max_text.contains("1000x1000"));
+
+        // Clean up
+        client.call_tool("ht_close_session", json!({"sessionId": session_id}));
+    }
+
+    #[tokio::test]
+    #[cfg(not(ci))]
+    async fn test_resize_effect() {
+        let mut client = McpClient::new();
+
+        // Create session
+        let create_response = client.call_tool(
+            "ht_create_session",
+            json!({
+                "command": ["bash"],
+                "enableWebServer": false
+            }),
+        );
+        let session_id = client.extract_session_id(&create_response);
+
+        // Send a command that shows terminal size
+        client.call_tool(
+            "ht_send_keys",
+            json!({
+                "sessionId": session_id,
+                "keys": ["echo 'Terminal size test'", "Enter"]
+            }),
+        );
+
+        // Wait for command
+        tokio::time::sleep(Duration::from_millis(500)).await;
+
+        // Resize terminal
+        client.call_tool(
+            "ht_resize",
+            json!({
+                "sessionId": session_id,
+                "cols": 80,
+                "rows": 25
+            }),
+        );
+
+        // Take snapshot after resize
+        let snapshot_after = client.call_tool(
+            "ht_take_snapshot",
+            json!({
+                "sessionId": session_id
+            }),
+        );
+        let snapshot_text = client.extract_text_response(&snapshot_after);
+        
+        // Verify snapshot contains our test output
+        assert!(snapshot_text.contains("Terminal size test"));
+        assert!(snapshot_text.contains("Terminal Snapshot"));
 
         // Clean up
         client.call_tool("ht_close_session", json!({"sessionId": session_id}));
