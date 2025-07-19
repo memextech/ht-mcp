@@ -30,12 +30,21 @@ pub struct SessionInfo {
 
 pub struct SessionManager {
     sessions: HashMap<String, SessionInfo>,
+    web_port_config: Option<u16>,
 }
 
 impl SessionManager {
     pub fn new() -> Self {
         Self {
             sessions: HashMap::new(),
+            web_port_config: None,
+        }
+    }
+
+    pub fn new_with_port_config(web_port_config: Option<u16>) -> Self {
+        Self {
+            sessions: HashMap::new(),
+            web_port_config,
         }
     }
 
@@ -189,9 +198,23 @@ impl SessionManager {
     }
 
     /// Find an available port for the webserver
-    /// Uses port range 3618-3999 to avoid conflicts with common development servers
-    /// (Next.js: 3000, React: 3001, etc.)
+    /// If web_port_config is set, uses that specific port; otherwise uses port range 3618-3999
+    /// to avoid conflicts with common development servers (Next.js: 3000, React: 3001, etc.)
     async fn find_available_port(&self) -> Result<u16> {
+        if let Some(configured_port) = self.web_port_config {
+            // Try the specifically configured port
+            if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{}", configured_port)) {
+                drop(listener);
+                return Ok(configured_port);
+            } else {
+                return Err(HtMcpError::Internal(format!(
+                    "Configured port {} is not available", 
+                    configured_port
+                )));
+            }
+        }
+
+        // Fallback to auto-discovery in the standard range
         for port in 3618..3999 {
             if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{}", port)) {
                 drop(listener);

@@ -30,6 +30,10 @@ struct Cli {
     /// Server name for MCP identification
     #[arg(long, default_value = "ht-mcp-server")]
     name: String,
+
+    /// Web server port (if not specified, auto-discovers available port in range 3618-3999)
+    #[arg(long)]
+    port: Option<u16>,
 }
 
 #[tokio::main]
@@ -48,9 +52,14 @@ async fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     info!("Starting HT MCP Server v{}", env!("CARGO_PKG_VERSION"));
+    if let Some(port) = cli.port {
+        info!("Web server port configured: {}", port);
+    } else {
+        info!("Web server port will be auto-discovered in range 3618-3999");
+    }
 
     // Create MCP server
-    let mut server = HtMcpServer::new();
+    let mut server = HtMcpServer::new_with_port_config(cli.port);
 
     info!("HT MCP Server created successfully");
     info!("Server info: {:?}", server.server_info());

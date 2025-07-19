@@ -29,6 +29,17 @@ impl HtMcpServer {
         }
     }
 
+    pub fn new_with_port_config(web_port_config: Option<u16>) -> Self {
+        Self {
+            session_manager: Arc::new(Mutex::new(SessionManager::new_with_port_config(web_port_config))),
+            server_info: ServerInfo {
+                name: "ht-mcp-server".to_string(),
+                version: env!("CARGO_PKG_VERSION").to_string(),
+            },
+            call_counter: AtomicU64::new(0),
+        }
+    }
+
     pub fn server_info(&self) -> &ServerInfo {
         &self.server_info
     }

@@ -122,6 +122,9 @@ ht-mcp
 
 # With debug logging
 ht-mcp --debug
+
+# With specific web server port
+ht-mcp --port 4000
 ```
 
 Once configured in your MCP client:
