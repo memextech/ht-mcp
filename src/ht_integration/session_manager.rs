@@ -350,6 +350,33 @@ impl SessionManager {
             "message": format!("Session {} closed successfully", args.session_id)
         }))
     }
+
+    pub async fn resize_session(&mut self, args: ResizeArgs) -> Result<serde_json::Value> {
+        let session = self
+            .sessions
+            .get(&args.session_id)
+            .ok_or_else(|| HtMcpError::SessionNotFound(args.session_id.clone()))?;
+
+        // Send resize command via the command channel
+        session
+            .command_tx
+            .send(SessionCommand::Resize(args.cols, args.rows))
+            .await
+            .map_err(|e| HtMcpError::Internal(format!("Failed to send resize command: {}", e)))?;
+
+        info!(
+            "Resized session {} to {}x{}",
+            args.session_id, args.cols, args.rows
+        );
+
+        Ok(serde_json::json!({
+            "success": true,
+            "message": format!("Terminal resized to {}x{} for session {}", args.cols, args.rows, args.session_id),
+            "sessionId": args.session_id,
+            "cols": args.cols,
+            "rows": args.rows
+        }))
+    }
 }
 
 /// Creates a Winsize struct with platform-appropriate fields

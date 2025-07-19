@@ -32,5 +32,10 @@ pub fn get_tool_definitions() -> Vec<serde_json::Value> {
             "description": "Close an HT session",
             "inputSchema": close_session_schema()
         }),
+        serde_json::json!({
+            "name": "ht_resize",
+            "description": "Resize the terminal window",
+            "inputSchema": resize_schema()
+        }),
     ]
 }

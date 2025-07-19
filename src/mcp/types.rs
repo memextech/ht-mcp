@@ -52,6 +52,14 @@ pub struct CloseSessionArgs {
     pub session_id: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ResizeArgs {
+    #[serde(rename = "sessionId")]
+    pub session_id: String,
+    pub cols: usize,
+    pub rows: usize,
+}
+
 // Schema generation functions
 pub fn create_session_schema() -> Value {
     let default_command = if cfg!(windows) {
@@ -146,6 +154,32 @@ pub fn close_session_schema() -> Value {
             }
         },
         "required": ["sessionId"],
+        "additionalProperties": false
+    })
+}
+
+pub fn resize_schema() -> Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "sessionId": {
+                "type": "string",
+                "description": "HT session ID"
+            },
+            "cols": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000,
+                "description": "Number of columns (width) for the terminal"
+            },
+            "rows": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000,
+                "description": "Number of rows (height) for the terminal"
+            }
+        },
+        "required": ["sessionId", "cols", "rows"],
         "additionalProperties": false
     })
 }
