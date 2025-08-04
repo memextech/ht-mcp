@@ -89,7 +89,7 @@ impl SessionManager {
         // Start PTY process
         let command_str = command.join(" ");
         let _pty_handle = tokio::spawn(async move {
-            match pty::spawn(command_str, &size, input_rx, output_tx) {
+            match pty::spawn(command_str, *size, input_rx, output_tx) {
                 Ok(future) => {
                     if let Err(e) = future.await {
                         error!("PTY execution error: {}", e);
