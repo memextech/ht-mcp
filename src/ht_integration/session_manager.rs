@@ -1,9 +1,9 @@
 use crate::error::{HtMcpError, Result};
 use crate::mcp::types::*;
-use ht_core::{api::http, pty, cli::Size, session::Session};
-use std::str::FromStr;
+use ht_core::{api::http, cli::Size, pty, session::Session};
 use std::collections::HashMap;
 use std::net::{SocketAddr, TcpListener};
+use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
@@ -352,7 +352,6 @@ impl SessionManager {
         }))
     }
 }
-
 
 /// Intelligently parse a key string as either a special key or literal text
 fn smart_parse_key(key: &str) -> ht_core::command::InputSeq {
