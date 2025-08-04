@@ -63,8 +63,7 @@ mod integration_tests {
                 .expect("Failed to check child status")
             {
                 panic!(
-                    "Server terminated during startup with exit code: {:?}",
-                    exit_status
+                    "Server terminated during startup with exit code: {exit_status:?}"
                 );
             }
 
@@ -92,7 +91,7 @@ mod integration_tests {
             self.send_message(init_msg);
             eprintln!("DEBUG: Reading initialize response");
             let response = self.read_response();
-            eprintln!("DEBUG: Initialize response received: {:?}", response);
+            eprintln!("DEBUG: Initialize response received: {response:?}");
 
             // Send initialized notification
             let initialized = json!({
@@ -120,8 +119,7 @@ mod integration_tests {
             if let Some(exit_status) = self.child.try_wait().expect("Failed to check child status")
             {
                 panic!(
-                    "Server process terminated with exit code: {:?}",
-                    exit_status
+                    "Server process terminated with exit code: {exit_status:?}"
                 );
             }
 
@@ -136,7 +134,7 @@ mod integration_tests {
             }
 
             let trimmed = line.trim();
-            eprintln!("DEBUG: Read line: {:?}", trimmed);
+            eprintln!("DEBUG: Read line: {trimmed:?}");
 
             if trimmed.is_empty() {
                 panic!("Empty line received from server");
@@ -156,10 +154,10 @@ mod integration_tests {
                 }
             });
 
-            eprintln!("DEBUG: Calling tool {} with args: {}", tool_name, arguments);
+            eprintln!("DEBUG: Calling tool {tool_name} with args: {arguments}");
             self.send_message(msg);
             let response = self.read_response();
-            eprintln!("DEBUG: Tool {} response received", tool_name);
+            eprintln!("DEBUG: Tool {tool_name} response received");
             response
         }
 
@@ -210,7 +208,7 @@ mod integration_tests {
             .contains("Session ID:"));
         let session_id = client.extract_session_id(&create_response);
         assert!(!session_id.is_empty());
-        eprintln!("=== Session created with ID: {} ===", session_id);
+        eprintln!("=== Session created with ID: {session_id} ===");
 
         // Test 2: List sessions
         eprintln!("=== Test 2: List sessions ===");
@@ -272,7 +270,7 @@ mod integration_tests {
         );
         let close_text = client.extract_text_response(&close_response);
         assert!(close_text.contains("closed successfully"));
-        eprintln!("Session close response: {}", close_text);
+        eprintln!("Session close response: {close_text}");
 
         // Test 7: Verify session is closed
         eprintln!("=== Test 7: Verify session is closed ===");
@@ -282,7 +280,7 @@ mod integration_tests {
             final_text.contains("Active HT Sessions (0)")
                 || final_text.contains("No active sessions")
         );
-        eprintln!("Session list verification successful: {}", final_text);
+        eprintln!("Session list verification successful: {final_text}");
 
         eprintln!("=== Test completed successfully! ===");
     }

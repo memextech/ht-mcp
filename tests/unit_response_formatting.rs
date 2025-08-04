@@ -137,7 +137,7 @@ fn format_create_session_response(result: &serde_json::Value) -> String {
 
     let web_server_info = if web_server_enabled {
         if let Some(url) = web_server_url {
-            format!("\n\n🌐 Web server enabled! View live terminal at: {}", url)
+            format!("\n\n🌐 Web server enabled! View live terminal at: {url}")
         } else {
             "\n\n🌐 Web server enabled! Check console for URL.".to_string()
         }
@@ -146,8 +146,7 @@ fn format_create_session_response(result: &serde_json::Value) -> String {
     };
 
     format!(
-        "HT session created successfully!\n\nSession ID: {}\n\nYou can now use this session ID with other HT tools to send commands and take snapshots.{}",
-        session_id, web_server_info
+        "HT session created successfully!\n\nSession ID: {session_id}\n\nYou can now use this session ID with other HT tools to send commands and take snapshots.{web_server_info}"
     )
 }
 
@@ -156,8 +155,7 @@ fn format_snapshot_response(result: &serde_json::Value) -> String {
     let snapshot = result["snapshot"].as_str().unwrap_or("No snapshot data");
 
     format!(
-        "Terminal Snapshot (Session: {})\n\n```\n{}\n```",
-        session_id, snapshot
+        "Terminal Snapshot (Session: {session_id})\n\n```\n{snapshot}\n```"
     )
 }
 
@@ -184,8 +182,7 @@ fn format_execute_command_response(result: &serde_json::Value) -> String {
     let output = result["output"].as_str().unwrap_or("No output");
 
     format!(
-        "Command executed: {}\n\nTerminal Output:\n```\n{}\n```",
-        command, output
+        "Command executed: {command}\n\nTerminal Output:\n```\n{output}\n```"
     )
 }
 
@@ -195,7 +192,7 @@ fn format_list_sessions_response(result: &serde_json::Value) -> String {
     let sessions = result["sessions"].as_array().unwrap_or(&default_sessions);
 
     if sessions.is_empty() {
-        format!("Active HT Sessions ({}):\n\nNo active sessions", count)
+        format!("Active HT Sessions ({count}):\n\nNo active sessions")
     } else {
         let session_list: Vec<String> = sessions
             .iter()
@@ -223,5 +220,5 @@ fn format_list_sessions_response(result: &serde_json::Value) -> String {
 
 fn format_close_session_response(result: &serde_json::Value) -> String {
     let session_id = result["sessionId"].as_str().unwrap_or("unknown");
-    format!("Session {} closed successfully.", session_id)
+    format!("Session {session_id} closed successfully.")
 }

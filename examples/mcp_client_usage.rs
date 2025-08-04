@@ -91,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let session_text = create_response["result"]["content"][0]["text"]
         .as_str()
         .unwrap();
-    println!("✅ {}", session_text);
+    println!("✅ {session_text}");
 
     // Extract session ID from response
     let session_id = session_text
@@ -101,7 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or("")
         .to_string();
 
-    println!("⌨️  Sending commands to session {}...", session_id);
+    println!("⌨️  Sending commands to session {session_id}...");
 
     // Send some keys
     let send_keys = json!({
