@@ -640,37 +640,28 @@ Co-Authored-By: Memex <noreply@memex.tech>"#;
         // Special keys should use parse_key
         let enter_result = smart_parse_key("Enter");
         let expected_enter = ht_core::api::stdio::parse_key("Enter".to_string());
-        assert_eq!(
-            format!("{:?}", enter_result),
-            format!("{:?}", expected_enter)
-        );
+        assert_eq!(format!("{enter_result:?}"), format!("{expected_enter:?}"));
 
         // Control key
         let ctrl_c_result = smart_parse_key("C-c");
         let expected_ctrl_c = ht_core::api::stdio::parse_key("C-c".to_string());
-        assert_eq!(
-            format!("{:?}", ctrl_c_result),
-            format!("{:?}", expected_ctrl_c)
-        );
+        assert_eq!(format!("{ctrl_c_result:?}"), format!("{expected_ctrl_c:?}"));
 
         // Text should use standard_key
         let text_result = smart_parse_key("hello world");
         let expected_text = ht_core::api::stdio::standard_key("hello world");
-        assert_eq!(format!("{:?}", text_result), format!("{:?}", expected_text));
+        assert_eq!(format!("{text_result:?}"), format!("{expected_text:?}"));
 
         // Simple git command should use standard_key
         let git_result = smart_parse_key("git commit -m \"test\"");
         let expected_git = ht_core::api::stdio::standard_key("git commit -m \"test\"");
-        assert_eq!(format!("{:?}", git_result), format!("{:?}", expected_git));
+        assert_eq!(format!("{git_result:?}"), format!("{expected_git:?}"));
 
         // Emoji string should use standard_key
         let emoji_result = smart_parse_key("🤖 Generated with [Memex](https://memex.tech)");
         let expected_emoji =
             ht_core::api::stdio::standard_key("🤖 Generated with [Memex](https://memex.tech)");
-        assert_eq!(
-            format!("{:?}", emoji_result),
-            format!("{:?}", expected_emoji)
-        );
+        assert_eq!(format!("{emoji_result:?}"), format!("{expected_emoji:?}"));
     }
 
     #[test]
