@@ -62,11 +62,10 @@ impl SessionManager {
         let (web_server_url, _clients_tx_for_session) = if enable_web_server {
             let port = self.find_available_port().await?;
             let addr = SocketAddr::from(([127, 0, 0, 1], port));
-            let listener = TcpListener::bind(addr).map_err(|e| {
-                HtMcpError::Internal(format!("Failed to bind to port {}: {}", port, e))
-            })?;
+            let listener = TcpListener::bind(addr)
+                .map_err(|e| HtMcpError::Internal(format!("Failed to bind to port {port}: {e}")))?;
 
-            let url = format!("http://127.0.0.1:{}", port);
+            let url = format!("http://127.0.0.1:{port}");
 
             // Clone clients_tx for the HTTP server
             let clients_tx_for_http = clients_tx.clone();
@@ -194,7 +193,7 @@ impl SessionManager {
     /// (Next.js: 3000, React: 3001, etc.)
     async fn find_available_port(&self) -> Result<u16> {
         for port in 3618..3999 {
-            if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{}", port)) {
+            if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{port}")) {
                 drop(listener);
                 return Ok(port);
             }
@@ -233,7 +232,7 @@ impl SessionManager {
             .command_tx
             .send(SessionCommand::Input(input_seqs))
             .await
-            .map_err(|e| HtMcpError::Internal(format!("Failed to send keys: {}", e)))?;
+            .map_err(|e| HtMcpError::Internal(format!("Failed to send keys: {e}")))?;
 
         info!("Sent keys {:?} to session {}", args.keys, args.session_id);
 

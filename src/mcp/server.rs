@@ -48,7 +48,7 @@ impl HtMcpServer {
         match tool_name {
             "ht_create_session" => {
                 let args: crate::mcp::types::CreateSessionArgs = serde_json::from_value(arguments)
-                    .map_err(|e| HtMcpError::InvalidRequest(format!("Invalid arguments: {}", e)))?;
+                    .map_err(|e| HtMcpError::InvalidRequest(format!("Invalid arguments: {e}")))?;
                 session_manager.create_session(args).await
             }
             "ht_send_keys" => {
@@ -60,7 +60,7 @@ impl HtMcpServer {
                 );
 
                 let args: crate::mcp::types::SendKeysArgs = serde_json::from_value(arguments)
-                    .map_err(|e| HtMcpError::InvalidRequest(format!("Invalid arguments: {}", e)))?;
+                    .map_err(|e| HtMcpError::InvalidRequest(format!("Invalid arguments: {e}")))?;
 
                 // Debug: Log the parsed arguments
                 info!(
@@ -80,26 +80,25 @@ impl HtMcpServer {
             "ht_take_snapshot" => {
                 let args: crate::mcp::types::TakeSnapshotArgs = serde_json::from_value(arguments)
                     .map_err(|e| {
-                    HtMcpError::InvalidRequest(format!("Invalid arguments: {}", e))
+                    HtMcpError::InvalidRequest(format!("Invalid arguments: {e}"))
                 })?;
                 session_manager.take_snapshot(args).await
             }
             "ht_execute_command" => {
                 let args: crate::mcp::types::ExecuteCommandArgs = serde_json::from_value(arguments)
-                    .map_err(|e| HtMcpError::InvalidRequest(format!("Invalid arguments: {}", e)))?;
+                    .map_err(|e| HtMcpError::InvalidRequest(format!("Invalid arguments: {e}")))?;
                 session_manager.execute_command(args).await
             }
             "ht_list_sessions" => session_manager.list_sessions().await,
             "ht_close_session" => {
                 let args: crate::mcp::types::CloseSessionArgs = serde_json::from_value(arguments)
                     .map_err(|e| {
-                    HtMcpError::InvalidRequest(format!("Invalid arguments: {}", e))
+                    HtMcpError::InvalidRequest(format!("Invalid arguments: {e}"))
                 })?;
                 session_manager.close_session(args).await
             }
             _ => Err(HtMcpError::InvalidRequest(format!(
-                "Unknown tool: {}",
-                tool_name
+                "Unknown tool: {tool_name}"
             ))),
         }
     }
