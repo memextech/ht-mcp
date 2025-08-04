@@ -1,6 +1,7 @@
 use crate::error::{HtMcpError, Result};
 use crate::mcp::types::*;
-use ht_core::{api::http, pty, pty::Winsize, session::Session};
+use ht_core::{api::http, pty, cli::Size, session::Session};
+use std::str::FromStr;
 use std::collections::HashMap;
 use std::net::{SocketAddr, TcpListener};
 use std::sync::Arc;
@@ -53,7 +54,7 @@ impl SessionManager {
 
         // Create a platform-agnostic terminal size
         // Using a helper function to maintain a clean interface
-        let size = create_winsize(120, 40);
+        let size = Size::from_str("120x40").unwrap();
         let cols = size.ws_col as usize;
         let rows = size.ws_row as usize;
 
@@ -88,7 +89,7 @@ impl SessionManager {
         // Start PTY process
         let command_str = command.join(" ");
         let _pty_handle = tokio::spawn(async move {
-            match pty::spawn(command_str, size, input_rx, output_tx) {
+            match pty::spawn(command_str, &size, input_rx, output_tx) {
                 Ok(future) => {
                     if let Err(e) = future.await {
                         error!("PTY execution error: {}", e);
@@ -352,27 +353,6 @@ impl SessionManager {
     }
 }
 
-/// Creates a Winsize struct with platform-appropriate fields
-/// This function abstracts away platform differences in the Winsize struct
-fn create_winsize(cols: u16, rows: u16) -> Winsize {
-    #[cfg(unix)]
-    {
-        Winsize {
-            ws_col: cols,
-            ws_row: rows,
-            ws_xpixel: 0,
-            ws_ypixel: 0,
-        }
-    }
-
-    #[cfg(windows)]
-    {
-        Winsize {
-            ws_col: cols,
-            ws_row: rows,
-        }
-    }
-}
 
 /// Intelligently parse a key string as either a special key or literal text
 fn smart_parse_key(key: &str) -> ht_core::command::InputSeq {
