@@ -260,13 +260,13 @@ impl SessionManager {
             .command_tx
             .send(SessionCommand::Snapshot(response_tx))
             .await
-            .map_err(|e| HtMcpError::Internal(format!("Failed to send snapshot command: {}", e)))?;
+            .map_err(|e| HtMcpError::Internal(format!("Failed to send snapshot command: {e}")))?;
 
         // Wait for the response with a timeout
         let snapshot = tokio::time::timeout(tokio::time::Duration::from_secs(5), response_rx)
             .await
             .map_err(|_| HtMcpError::Internal("Snapshot request timed out".to_string()))?
-            .map_err(|e| HtMcpError::Internal(format!("Failed to receive snapshot: {}", e)))?;
+            .map_err(|e| HtMcpError::Internal(format!("Failed to receive snapshot: {e}")))?;
 
         info!(
             "Received snapshot for session {}: {} chars",
