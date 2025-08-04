@@ -75,18 +75,23 @@
 3. **MANDATORY PRE-COMMIT CHECKLIST:**
    - `cargo fmt --all` (fix formatting)
    - `cargo fmt --all -- --check` (verify no formatting issues)
-   - `cargo clippy --all-targets` (check linting)
+   - `cargo clippy --workspace --all-targets -- -D warnings` (check linting with EXACT CI command)
    - `cargo build` (verify compilation)
-4. **MANDATORY PRE-PUSH VALIDATION** - Run full CI equivalent tests locally before pushing to prevent CI failures:
+4. **MANDATORY PRE-PUSH VALIDATION** - Run EXACT CI equivalent tests locally before pushing to prevent CI failures:
    - `cargo fmt --all -- --check` (formatting compliance)
-   - `cargo clippy --all-targets --all-features -- -D warnings` (strict linting)
+   - `cargo clippy --workspace --all-targets -- -D warnings` (strict linting - EXACT CI COMMAND)
    - `cargo build --verbose` (debug build)
    - `RUSTFLAGS="--cfg ci" cargo test --verbose` (CI test environment)
    - `cargo build --release` (release build)
-5. **CRITICAL**: Always validate locally first - CI failures waste time and create noise
-6. All CI must pass before merging
-7. Integration tests are disabled in CI but work locally
-8. Use `shell: bash` for cross-platform CI commands
+5. **CRITICAL**: Always validate locally first using EXACT CI commands - CI failures waste time and create noise
+6. **CI DISCREPANCY DEBUGGING**: If local tests pass but CI fails:
+   - Check `Cargo.toml` dependencies for version/path conflicts
+   - Verify submodule commits are pushed to remote
+   - Run `cargo clean` and re-test to eliminate caching issues
+   - Use `cargo clippy --workspace --all-targets -- -D warnings` (workspace scope)
+7. All CI must pass before merging
+8. Integration tests are disabled in CI but work locally
+9. Use `shell: bash` for cross-platform CI commands
 
 ### Code Quality Requirements
 - **Formatting**: Run `cargo fmt --all` before every commit
@@ -264,6 +269,17 @@ mod tests {
 3. **Rust Ecosystem**: Custom cfg flags require proper declaration
 4. **Formatting Critical**: `cargo fmt --all` must be run before every commit - CI fails on formatting violations
 5. **Strategy**: Focus on supported platforms rather than universal compatibility
+6. **CRITICAL CI DEBUGGING**: Always reproduce CI issues locally BEFORE committing fixes
+   - **Root Cause Discovered**: CI was pulling `ht-core v0.3.0` from crates.io instead of local submodule
+   - **Cargo.toml Issue**: `ht-core = { version = "0.3.0", path = "./ht-core" }` caused version resolution conflicts
+   - **Solution**: Remove version specification, use only `ht-core = { path = "./ht-core" }`
+   - **Local Reproduction**: Must run exact CI commands: `cargo clippy --workspace --all-targets -- -D warnings`
+   - **Pre-commit Validation**: Always run complete CI pipeline locally:
+     1. `cargo fmt --all -- --check`
+     2. `cargo clippy --workspace --all-targets -- -D warnings` 
+     3. `cargo build --verbose`
+     4. `RUSTFLAGS="--cfg ci" cargo test --verbose`
+   - **Discrepancy Detection**: If local passes but CI fails, check dependency resolution and submodule versions
 
 ## Memory Notes
 - The project uses embedded ht library via git submodule
