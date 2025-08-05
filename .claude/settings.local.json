@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cargo:*)",
+      "Bash(git checkout:*)",
+      "Bash(git restore:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(cp:*)",
+      "Bash(ls:*)",
+      "Bash(~/bin/ht-mcp-rust:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(git fetch:*)",
+      "Bash(git rebase:*)"
+    ],
+    "deny": []
+  }
+}

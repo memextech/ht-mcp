@@ -66,8 +66,8 @@ tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "fs"] }
 hyper = "1.0"
 
-# Local HT library
-ht-core = { version = "0.3.0", path = "./ht-core" }
+# Local HT library - using local path only to ensure CI uses submodule
+ht-core = { path = "./ht-core" }
 
 [dev-dependencies]
 tokio-test = "0.4"

@@ -1,8 +1,9 @@
 use crate::error::{HtMcpError, Result};
 use crate::mcp::types::*;
-use ht_core::{api::http, pty, pty::Winsize, session::Session};
+use ht_core::{api::http, cli::Size, pty, session::Session};
 use std::collections::HashMap;
 use std::net::{SocketAddr, TcpListener};
+use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 use uuid::Uuid;
@@ -53,7 +54,7 @@ impl SessionManager {
 
         // Create a platform-agnostic terminal size
         // Using a helper function to maintain a clean interface
-        let size = create_winsize(120, 40);
+        let size = Size::from_str("120x40").unwrap();
         let cols = size.ws_col as usize;
         let rows = size.ws_row as usize;
 
@@ -61,11 +62,10 @@ impl SessionManager {
         let (web_server_url, _clients_tx_for_session) = if enable_web_server {
             let port = self.find_available_port().await?;
             let addr = SocketAddr::from(([127, 0, 0, 1], port));
-            let listener = TcpListener::bind(addr).map_err(|e| {
-                HtMcpError::Internal(format!("Failed to bind to port {}: {}", port, e))
-            })?;
+            let listener = TcpListener::bind(addr)
+                .map_err(|e| HtMcpError::Internal(format!("Failed to bind to port {port}: {e}")))?;
 
-            let url = format!("http://127.0.0.1:{}", port);
+            let url = format!("http://127.0.0.1:{port}");
 
             // Clone clients_tx for the HTTP server
             let clients_tx_for_http = clients_tx.clone();
@@ -88,7 +88,7 @@ impl SessionManager {
         // Start PTY process
         let command_str = command.join(" ");
         let _pty_handle = tokio::spawn(async move {
-            match pty::spawn(command_str, size, input_rx, output_tx) {
+            match pty::spawn(command_str, *size, input_rx, output_tx) {
                 Ok(future) => {
                     if let Err(e) = future.await {
                         error!("PTY execution error: {}", e);
@@ -193,7 +193,7 @@ impl SessionManager {
     /// (Next.js: 3000, React: 3001, etc.)
     async fn find_available_port(&self) -> Result<u16> {
         for port in 3618..3999 {
-            if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{}", port)) {
+            if let Ok(listener) = TcpListener::bind(format!("127.0.0.1:{port}")) {
                 drop(listener);
                 return Ok(port);
             }
@@ -232,7 +232,7 @@ impl SessionManager {
             .command_tx
             .send(SessionCommand::Input(input_seqs))
             .await
-            .map_err(|e| HtMcpError::Internal(format!("Failed to send keys: {}", e)))?;
+            .map_err(|e| HtMcpError::Internal(format!("Failed to send keys: {e}")))?;
 
         info!("Sent keys {:?} to session {}", args.keys, args.session_id);
 
@@ -260,13 +260,13 @@ impl SessionManager {
             .command_tx
             .send(SessionCommand::Snapshot(response_tx))
             .await
-            .map_err(|e| HtMcpError::Internal(format!("Failed to send snapshot command: {}", e)))?;
+            .map_err(|e| HtMcpError::Internal(format!("Failed to send snapshot command: {e}")))?;
 
         // Wait for the response with a timeout
         let snapshot = tokio::time::timeout(tokio::time::Duration::from_secs(5), response_rx)
             .await
             .map_err(|_| HtMcpError::Internal("Snapshot request timed out".to_string()))?
-            .map_err(|e| HtMcpError::Internal(format!("Failed to receive snapshot: {}", e)))?;
+            .map_err(|e| HtMcpError::Internal(format!("Failed to receive snapshot: {e}")))?;
 
         info!(
             "Received snapshot for session {}: {} chars",
@@ -349,28 +349,6 @@ impl SessionManager {
             "success": true,
             "message": format!("Session {} closed successfully", args.session_id)
         }))
-    }
-}
-
-/// Creates a Winsize struct with platform-appropriate fields
-/// This function abstracts away platform differences in the Winsize struct
-fn create_winsize(cols: u16, rows: u16) -> Winsize {
-    #[cfg(unix)]
-    {
-        Winsize {
-            ws_col: cols,
-            ws_row: rows,
-            ws_xpixel: 0,
-            ws_ypixel: 0,
-        }
-    }
-
-    #[cfg(windows)]
-    {
-        Winsize {
-            ws_col: cols,
-            ws_row: rows,
-        }
     }
 }
 
@@ -661,37 +639,28 @@ Co-Authored-By: Memex <noreply@memex.tech>"#;
         // Special keys should use parse_key
         let enter_result = smart_parse_key("Enter");
         let expected_enter = ht_core::api::stdio::parse_key("Enter".to_string());
-        assert_eq!(
-            format!("{:?}", enter_result),
-            format!("{:?}", expected_enter)
-        );
+        assert_eq!(format!("{enter_result:?}"), format!("{expected_enter:?}"));
 
         // Control key
         let ctrl_c_result = smart_parse_key("C-c");
         let expected_ctrl_c = ht_core::api::stdio::parse_key("C-c".to_string());
-        assert_eq!(
-            format!("{:?}", ctrl_c_result),
-            format!("{:?}", expected_ctrl_c)
-        );
+        assert_eq!(format!("{ctrl_c_result:?}"), format!("{expected_ctrl_c:?}"));
 
         // Text should use standard_key
         let text_result = smart_parse_key("hello world");
         let expected_text = ht_core::api::stdio::standard_key("hello world");
-        assert_eq!(format!("{:?}", text_result), format!("{:?}", expected_text));
+        assert_eq!(format!("{text_result:?}"), format!("{expected_text:?}"));
 
         // Simple git command should use standard_key
         let git_result = smart_parse_key("git commit -m \"test\"");
         let expected_git = ht_core::api::stdio::standard_key("git commit -m \"test\"");
-        assert_eq!(format!("{:?}", git_result), format!("{:?}", expected_git));
+        assert_eq!(format!("{git_result:?}"), format!("{expected_git:?}"));
 
         // Emoji string should use standard_key
         let emoji_result = smart_parse_key("🤖 Generated with [Memex](https://memex.tech)");
         let expected_emoji =
             ht_core::api::stdio::standard_key("🤖 Generated with [Memex](https://memex.tech)");
-        assert_eq!(
-            format!("{:?}", emoji_result),
-            format!("{:?}", expected_emoji)
-        );
+        assert_eq!(format!("{emoji_result:?}"), format!("{expected_emoji:?}"));
     }
 
     #[test]

@@ -62,7 +62,7 @@ async fn test_simple_mcp_initialization() {
         .read_line(&mut line)
         .expect("Failed to read response");
 
-    println!("Response received: {} bytes", bytes_read);
+    println!("Response received: {bytes_read} bytes");
     println!("Response content: {}", line.trim());
 
     // Parse and validate response
