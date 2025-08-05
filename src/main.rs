@@ -282,17 +282,13 @@ fn format_tool_response(tool_name: &str, result: &serde_json::Value) -> String {
             let session_id = result["sessionId"].as_str().unwrap_or("unknown");
             let snapshot = result["snapshot"].as_str().unwrap_or("No snapshot data");
 
-            format!(
-                "Terminal Snapshot (Session: {session_id})\n\n```\n{snapshot}\n```"
-            )
+            format!("Terminal Snapshot (Session: {session_id})\n\n```\n{snapshot}\n```")
         }
         "ht_execute_command" => {
             let command = result["command"].as_str().unwrap_or("unknown");
             let output = result["output"].as_str().unwrap_or("No output");
 
-            format!(
-                "Command executed: {command}\n\nTerminal Output:\n```\n{output}\n```"
-            )
+            format!("Command executed: {command}\n\nTerminal Output:\n```\n{output}\n```")
         }
         "ht_list_sessions" => {
             let count = result["count"].as_u64().unwrap_or(0);

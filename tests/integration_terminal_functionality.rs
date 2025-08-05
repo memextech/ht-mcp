@@ -62,9 +62,7 @@ mod integration_tests {
                 .try_wait()
                 .expect("Failed to check child status")
             {
-                panic!(
-                    "Server terminated during startup with exit code: {exit_status:?}"
-                );
+                panic!("Server terminated during startup with exit code: {exit_status:?}");
             }
 
             // Initialize the server
@@ -118,9 +116,7 @@ mod integration_tests {
             // Check if the child process is still alive
             if let Some(exit_status) = self.child.try_wait().expect("Failed to check child status")
             {
-                panic!(
-                    "Server process terminated with exit code: {exit_status:?}"
-                );
+                panic!("Server process terminated with exit code: {exit_status:?}");
             }
 
             let mut line = String::new();
