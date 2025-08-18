@@ -85,7 +85,7 @@ jobs:
           echo "  Linux: $LINUX_SHA"
 
       - name: Clone tap repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ env.ORG }}/${{ env.TAP_REPO }}
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
