@@ -64,7 +64,7 @@ clap = { version = "4.0", features = ["derive"] }
 axum = { version = "0.7", features = ["ws"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["cors", "fs"] }
-hyper = "1.0"
+hyper = "1.7"
 
 # Local HT library
 ht-core = { version = "0.3.0", path = "./ht-core" }
