@@ -71,7 +71,7 @@ ht-core = { version = "0.3.0", path = "./ht-core" }
 
 [dev-dependencies]
 tokio-test = "0.4"
-tempfile = "3.0"
+tempfile = "3.22"
 
 # [[bin]]
 # name = "test_ht_lib"
