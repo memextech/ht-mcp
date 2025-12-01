@@ -63,7 +63,7 @@ clap = { version = "4.0", features = ["derive"] }
 # Web server
 axum = { version = "0.7", features = ["ws"] }
 tower = "0.4"
-tower-http = { version = "0.5", features = ["cors", "fs"] }
+tower-http = { version = "0.6", features = ["cors", "fs"] }
 hyper = "1.0"
 
 # Local HT library
