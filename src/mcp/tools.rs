@@ -9,7 +9,7 @@ pub fn get_tool_definitions() -> Vec<serde_json::Value> {
             "annotations": {
                 "title": "Create Session",
                 "readOnlyHint": false,
-                "destructiveHint": true
+                "destructiveHint": false
             }
         }),
         serde_json::json!({
@@ -19,7 +19,7 @@ pub fn get_tool_definitions() -> Vec<serde_json::Value> {
             "annotations": {
                 "title": "Send Keys",
                 "readOnlyHint": false,
-                "destructiveHint": true
+                "destructiveHint": false
             }
         }),
         serde_json::json!({
@@ -38,7 +38,7 @@ pub fn get_tool_definitions() -> Vec<serde_json::Value> {
             "annotations": {
                 "title": "Execute Command",
                 "readOnlyHint": false,
-                "destructiveHint": true
+                "destructiveHint": false
             }
         }),
         serde_json::json!({
